@@ -73,7 +73,11 @@ fi
 # Shell integrations
 eval "$(zoxide init zsh --cmd cd)"
 eval "$(starship init zsh)"
-eval "$(fzf --zsh)"
+eval "$(tv init zsh)"
+
+autoload -Uz edit-command-line
+zle -N edit-command-line
+
 # Secrets
 if [ -f "$HOME/.secrets" ]; then
 source ~/.secrets
@@ -87,9 +91,20 @@ function zvm_after_init() {
     bindkey '^e' autosuggest-accept
     bindkey '^u' autosuggest-toggle
 
-    # Use fzf for command history search
-    bindkey '^R' fzf-history-widget
+    bindkey '^R' tv-shell-history
+    bindkey '^T' tv-smart-autocomplete
+    bindkey -M viins '^R' tv-shell-history
+    bindkey -M viins '^T' tv-smart-autocomplete
+    bindkey -M vicmd '^R' tv-shell-history
+    bindkey -M vicmd '^T' tv-smart-autocomplete
+    bindkey '^X^E' edit-command-line
+    bindkey -M viins '^X^E' edit-command-line
+    bindkey -M vicmd '^X^E' edit-command-line
     # unbindkey '^T'
 }
 zvm_after_init
 eval "$(uv generate-shell-completion zsh)"
+
+# opencode
+export PATH=/home/nclshrnk/.opencode/bin:$PATH
+eval "$(tv init zsh)"

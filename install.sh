@@ -1,6 +1,37 @@
 #! /bin/bash
 set -euo pipefail
 
+INSTALL_MODE="${DOTFILES_INSTALL_MODE:-auto}"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --container)
+      INSTALL_MODE="container"
+      shift
+      ;;
+    --mode)
+      INSTALL_MODE="${2:-}"
+      shift 2
+      ;;
+    --mode=*)
+      INSTALL_MODE="${1#*=}"
+      shift
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+case "$INSTALL_MODE" in
+  auto|host|container) ;;
+  *)
+    echo "Unsupported install mode: $INSTALL_MODE" >&2
+    exit 1
+    ;;
+esac
+
 APPS="${HOME}/localapps"
 APP_BIN="${APPS}/bin"
 APP_ROOT="${APPS}/apps"
@@ -154,14 +185,28 @@ install_shelltools() {
   install_lazygit
   install_neovim
   install_zellij
-  install_tpm
   install_uv
 }
 
-if command -v nix &>/dev/null && nix --version &>/dev/null; then
-  echo "On nix assuming shelltools already installed"
-else
+should_install_shelltools() {
+  case "$INSTALL_MODE" in
+    container)
+      return 1
+      ;;
+    host)
+      return 0
+      ;;
+  esac
+
+  ! command -v nix &>/dev/null || ! nix --version &>/dev/null
+}
+
+if should_install_shelltools; then
   install_shelltools
+else
+  echo "Skipping shelltools install for mode: $INSTALL_MODE"
 fi
+
+install_tpm
 
 "${REPODIR}/linkconf.sh"

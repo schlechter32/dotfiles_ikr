@@ -54,15 +54,17 @@ nsh-add() {
 }
 function tc {
   local GHOSTTY_DIR="$HOME/dotfiles/.config/ghostty"
-  local CMD="sed -i '' 's:\(config-file = {1}\)/.*:\1/{2}:' $GHOSTTY_DIR/config && osascript -so -e 'tell application \"Ghostty\" to activate' -e 'tell application \"System Events\" to keystroke \",\" using {command down, shift down}'"
-  fd -L \
-    --type f \
-    --exclude 'config' \
-    --base-directory $GHOSTTY_DIR \
-  | fzf \
-    --preview "cat $GHOSTTY_DIR/{}" \
-    --delimiter=/ \
-    --bind="enter:become:$CMD"
+  local selected
+
+  selected="$(tv \
+    --source-command="fd -L --type f --exclude config --base-directory '$GHOSTTY_DIR'" \
+    --source-display="{}" \
+    --source-output="{}" \
+    --preview-command="cat '$GHOSTTY_DIR'/{}")" || return
+
+  [[ -n "$selected" ]] || return
+  sed -i '' "s:\(config-file = \$HOME/.config/ghostty\)/.*:\1/$selected:" "$GHOSTTY_DIR/config" \
+    && osascript -so -e 'tell application "Ghostty" to activate' -e 'tell application "System Events" to keystroke "," using {command down, shift down}'
 }
 
 # List devpod workspaces on a remote host

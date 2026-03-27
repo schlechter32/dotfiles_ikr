@@ -51,7 +51,11 @@ export JULIA_DEPOT_PATH="$LAB_BULK_HOME/.julia/"
 export PATH="$LAB_BULK_HOME/.juliaup/bin/:$PATH"
 export PATH="$LAB_BULK_HOME/.julia/bin/:$PATH"
 export PATH="$LAB_BULK_HOME/.julia/bin/:$PATH"
+if [[ "${DOTFILES_INSTALL_MODE:-}" == "container" ]]; then
+export UV_CACHE_DIR="${UV_CACHE_DIR:-$HOME/.cache/uv}"
+else
 export UV_CACHE_DIR="$LAB_BULK_HOME/.uv/cache"
+fi
 # elif [[ $(hostname) == *"cobra"* ]]; then
 
 # export PATH="$HOME/.juliaup/bin/:$PATH"

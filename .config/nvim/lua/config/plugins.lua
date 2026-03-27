@@ -15,7 +15,7 @@ pack.add(vim.list_extend({
 	{ src = "https://github.com/alexghergh/nvim-tmux-navigation" },
 	{ src = "https://github.com/saghen/blink.cmp", version = "v1.7.0" },
 	{ src = "https://github.com/nvim-mini/mini.ai" },
-	{ src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects" },
+	{ src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = "main" },
 	{ src = "https://github.com/williamboman/mason.nvim" },
 	{ src = "https://github.com/stevearc/conform.nvim" },
 	{ src = "https://github.com/declancm/maximize.nvim" },

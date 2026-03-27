@@ -19,9 +19,11 @@ $hostname\
 style = "blue"
 
 [username]
-format='[$user]($style)'
+show_always = true
+format='[$user]($style)@'
 [hostname]
-ssh_symbol="@"
+ssh_only = false
+ssh_symbol=":"
 format='[$ssh_symbol$hostname]($style) '
 
 [character]
@@ -55,4 +57,3 @@ style = "yellow"
 [python]
 format = "[$virtualenv]($style) "
 style = "bright-black"
-

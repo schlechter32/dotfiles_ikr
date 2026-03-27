@@ -1,0 +1,29 @@
+[metadata]
+name = "projects"
+description = "Browse projects and open tmux or zellij sessions"
+requirements = ["bash", "eza", "git", "fd"]
+
+[source]
+command = "bash ~/dotfiles/nbin/list-session-projects.sh"
+display = "{}"
+output = "{}"
+
+[preview]
+command = [
+  "eza --all --long --group --header --mounts --created --icons --color=always '{}'",
+  "git -C '{}' status --short --branch --untracked-files=normal 2>/dev/null || printf 'Not a git worktree or repository metadata unavailable\\n'",
+]
+
+[keybindings]
+enter = "actions:tmux"
+ctrl-z = "actions:zellij"
+
+[actions.tmux]
+description = "Open or create a tmux session for this project"
+command = "bash ~/dotfiles/nbin/tmux-open-project.sh '{}'"
+mode = "execute"
+
+[actions.zellij]
+description = "Open or create a zellij session for this project"
+command = "bash ~/dotfiles/nbin/zellij-open-project.sh '{}'"
+mode = "execute"

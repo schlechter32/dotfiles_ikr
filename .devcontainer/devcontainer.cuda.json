@@ -1,0 +1,36 @@
+{
+  "name": "dotfiles-cuda-${localWorkspaceFolderBasename}",
+  "image": "ghcr.io/schlechter32/devenv:latest",
+  "remoteUser": "dev",
+  "containerUser": "dev",
+  "updateRemoteUserUID": true,
+  "workspaceFolder": "/workspace",
+  "runArgs": [
+    "--hostname=${localWorkspaceFolderBasename}",
+    "--device",
+    "nvidia.com/gpu=all",
+    "--add-host=host.containers.internal:host-gateway"
+  ],
+  "containerEnv": {
+    "NPM_CONFIG_PREFIX": "/home/dev/.local",
+    "UV_CACHE_DIR": "/home/dev/.cache/uv",
+    "UV_LINK_MODE": "copy"
+  },
+  "mounts": [
+    "source=${localEnv:HOME}/.claude,target=/home/dev/.claude,type=bind",
+    "source=${localEnv:HOME}/.claude.json,target=/home/dev/.claude.json,type=bind",
+    "source=${localEnv:HOME}/.codex,target=/home/dev/.codex,type=bind",
+    "source=${localEnv:HOME}/.config/opencode,target=/home/dev/.config/opencode,type=bind",
+    "source=${localEnv:HOME}/.local/share/opencode,target=/home/dev/.local/share/opencode,type=bind",
+    "source=${localEnv:HOME}/.cache/uv,target=/home/dev/.cache/uv,type=bind",
+    "source=${localEnv:HOME}/nixos-config,target=/home/dev/nixos-config,type=bind"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh"
+      }
+    }
+  }
+}
