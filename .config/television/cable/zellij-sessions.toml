@@ -1,0 +1,25 @@
+[metadata]
+name = "zellij-sessions"
+description = "List and manage zellij sessions"
+requirements = ["zellij"]
+
+[source]
+command = "zellij list-sessions --no-formatting"
+display = "{}"
+output = "{split: :0}"
+
+[preview]
+command = "printf 'Session: %s\n\nUse Enter to attach or Ctrl-X for more actions.\n' '{split: :0}'"
+
+[keybindings]
+enter = "actions:attach"
+
+[actions.attach]
+description = "Attach to the selected session"
+command = "zellij attach '{split: :0}'"
+mode = "execute"
+
+[actions.kill]
+description = "Kill the selected session"
+command = "zellij kill-session '{split: :0}'"
+mode = "fork"

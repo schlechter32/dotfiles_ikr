@@ -1,132 +1,191 @@
-#! /bin/bash
+#!/usr/bin/env bash
 
-# Determine the correct binary based on system
-if [[ "$(uname)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
-    CONFIG_PARSER="$HOME/dotfiles_ikr/nbin/sshconfigparser-darwin-arm64"
-elif [[ "$(uname)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
-    CONFIG_PARSER="$HOME/dotfiles_ikr/nbin/sshconfigparser-linux-amd64"
-else
-    echo "Unsupported system architecture"
+set -euo pipefail
+
+SSH_CONFIG="${SSH_CONFIG:-${HOME}/.ssh/config}"
+
+usage() {
+    echo "Usage: ish [ssh options] host [command ...]" >&2
     exit 1
-fi
-
-# Check if the binary exists and is executable
-if [[ ! -x "$CONFIG_PARSER" ]]; then
-    echo "Config parser binary not found or not executable: $CONFIG_PARSER"
-    exit 1
-fi
-
-# Argument parsing
-ssh_base_command="ssh"
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -p) ssh_base_command+=" -p $2"; shift ;;
-        -l) ssh_base_command+=" -l $2"; shift ;;
-        -i) ssh_base_command+=" -i $2"; shift ;;
-        -X) ssh_base_command+=" -X" ;;
-        -Y) ssh_base_command+=" -X" ;;
-        -N) ssh_base_command+=" -N" ;;
-        -L) ssh_base_command+=" -L $2:localhost:$2"; shift;;
-        -C) ssh_base_command+=" -C" ;;
-        -D) ssh_base_command+=" -D $2"; shift;;
-        *) break ;;
-    esac
-    shift
-done
-
-# Main script starts here
-initial_host=$1
-
-determine_sshpass_prompt_pw() {
-  local host="$1"
-  if [[ $(command -v pass) ]]; then
-    opt_pw=$(pass show "ssh/$host")
-  fi
-  if [ -n "$opt_pw" ]; then
-    echo "sshpass -p $opt_pw"
-  else
-    echo ""
-  fi
 }
 
-# Logic
-config=$("$CONFIG_PARSER" "$initial_host")
-# echo "config is $config"
+have_cmd() {
+    command -v "$1" >/dev/null 2>&1
+}
 
-user=$(echo "$config" | grep -o "User [^ ]*" | awk '{print $2}')
-user=${user:-nclshrnk}
-echo "user is $user"
+trim() {
+    local value="$1"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    printf '%s\n' "$value"
+}
 
-jump_host=$(echo "$config" | grep -o "ProxyJump [^ ]*" | awk '{print $2}')
-initial_host_ip=$(echo "$config" | grep -o "HostName [^ ]*" | awk '{print $2}')
-# echo "hostname var is $initial_host_ip"
-if [ -n "$jump_host" ]; then
-    jump_host_config=$("$CONFIG_PARSER" "$jump_host")
-    echo "jump host config $jump_host_config"
-    jump_host_ip=$(echo "$jump_host_config" | grep -o "HostName [^ ]*" | awk '{print $2}')
-fi
+match_host_pattern() {
+    local host="$1"
+    local pattern="$2"
+    [[ "$host" == $pattern ]]
+}
 
-echo "Connecting to $user@$initial_host with $initial_host_ip "
-echo "Jump host $jump_host with ip $jump_host_ip"
-if [[ "$jump_host" == "netserv1" || "$initial_host_ip" =~ ^129\.69\.172\.[456]$ ]]; then
-  if [ $(uname) == "Darwin" ]; then
-    echo "On mac so using mac to execute knock on $initial_host with $initial_host_ip"
-    ~/nbin/libscripts/knock_lab_mac --target "${jump_host_ip:-$initial_host_ip}"
-  else 
-    ~/nbin/libscripts/knock_lab --target "${jump_host_ip:-$initial_host_ip}"
-  fi
-fi
-if [[ "$jump_host" == "ingress" || "$initial_host" == "ingress" ]]; then
-    echo "host on ikr"
-  if [ $(uname) == "Darwin" ]; then
-    echo "On mac so ikr_knock_mac"
-    ~/nbin/knock_ikr_mac
-  else 
-    ~/nbin/libscripts/knock_ikr_linux
-  fi
-fi
-# Determine the full SSH command
-sshcommand="$ssh_base_command $initial_host"
+sshpass_entry_for_host() {
+    local host="$1"
+    local current_patterns=()
+    local line rest entry pattern
 
-if [ -n "$jump_host" ]; then
-    # Jump host scenario
-    if [[ $(command -v pass) ]]; then
-        # Try to get passwords from password store
-        jump_pw=$(pass show "ssh/$jump_host" 2>/dev/null)
-        # target_pw=$(pass show "ssh/$initial_host" 2>/dev/null)
-        
-        # echo "jump pw is $jump_pw"
-        if [ -n "$jump_pw" ]; then
-            # Both passwords available, use sshpass with ProxyCommand
-            echo "With jumppw"
-            sshpass -d 123 $ssh_base_command -o ProxyCommand="sshpass -p $jump_pw ssh -W %h:%p $jump_host" "$user@$initial_host_ip" 123<<<"$jump_pw"
-        else
-            # Passwords not available, use normal ssh
-            echo "Passwords not available, use normal ssh"
-            $ssh_base_command "$user@$initial_host"
+    [[ -r "$SSH_CONFIG" ]] || return 1
+
+    while IFS= read -r line; do
+        if [[ $line =~ ^[[:space:]]*Host[[:space:]]+ ]]; then
+            rest="${line#*[Hh]ost }"
+            read -r -a current_patterns <<<"$rest"
+            continue
         fi
-    else
-        # pass command not available, use normal ssh
-        echo "No jump host"
-        $ssh_base_command "$user@$initial_host"
-    fi
-else
-    # Direct connection (no jump host)
-    if [[ $(command -v pass) ]]; then
-        target_pw=$(pass show "ssh/$initial_host" 2>/dev/null)
-        if [ -n "$target_pw" ]; then
-            # Password available, use sshpass
-            echo "No jump host pass command is echo $sshcommand"
-            sshpass -p "$target_pw" $sshcommand
-        else
-            echo "No jump host sshkey"
-            # Password not available, use normal ssh
-            echo "connecting wiht $sshcommand"
-            $sshcommand
+
+        if [[ $line =~ ^[[:space:]]*(Match|Include)[[:space:]]+ ]]; then
+            current_patterns=()
+            continue
         fi
-    else
-        echo "No pass"
-        # pass command not available, use normal ssh
-        $sshcommand
+
+        if [[ $line =~ ^[[:space:]]*#sshpass[[:space:]]+(.+)$ ]]; then
+            entry="$(trim "${BASH_REMATCH[1]}")"
+            for pattern in "${current_patterns[@]}"; do
+                if match_host_pattern "$host" "$pattern"; then
+                    printf '%s\n' "$entry"
+                    return 0
+                fi
+            done
+        fi
+    done <"$SSH_CONFIG"
+
+    return 1
+}
+
+ssh_g_value() {
+    local config="$1"
+    local key="$2"
+
+    awk -v wanted="$key" '
+        $1 == wanted {
+            $1 = ""
+            sub(/^ /, "")
+            print
+            exit
+        }
+    ' <<<"$config"
+}
+
+first_proxyjump_host() {
+    local proxyjump="$1"
+    proxyjump="${proxyjump%%,*}"
+    proxyjump="${proxyjump%% *}"
+    printf '%s\n' "$proxyjump"
+}
+
+pass_value_for_entry() {
+    local entry="$1"
+    local value=""
+
+    if [[ "$entry" == */* ]]; then
+        pass show "$entry" 2>/dev/null | head -n 1
+        return
     fi
+
+    value="$(pass show "ssh/$entry" 2>/dev/null | head -n 1)" || true
+    if [[ -n "$value" ]]; then
+        printf '%s\n' "$value"
+        return
+    fi
+
+    pass show "$entry" 2>/dev/null | head -n 1
+}
+
+ssh_args=()
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --)
+            ssh_args+=("$1")
+            shift
+            break
+            ;;
+        -p|-l|-i|-L|-D|-o|-F|-J|-W|-b|-c|-E|-e|-I|-m|-O|-Q|-R|-S|-w)
+            [[ $# -ge 2 ]] || usage
+            ssh_args+=("$1" "$2")
+            shift 2
+            ;;
+        -[46AaCfGgKkMNnqsTtVvXxYy])
+            ssh_args+=("$1")
+            shift
+            ;;
+        -*)
+            ssh_args+=("$1")
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+[[ $# -ge 1 ]] || usage
+
+target_host="$1"
+shift
+remote_args=("$@")
+
+if ! have_cmd ssh; then
+    echo "ssh not found" >&2
+    exit 1
 fi
+
+if ! have_cmd sshpass; then
+    exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+fi
+
+if ! have_cmd pass; then
+    exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+fi
+
+effective_config="$(ssh -G "${ssh_args[@]}" "$target_host" 2>/dev/null)" || {
+    exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+}
+
+proxy_jump="$(ssh_g_value "$effective_config" "proxyjump")"
+proxy_command="$(ssh_g_value "$effective_config" "proxycommand")"
+
+target_pass_entry="$(sshpass_entry_for_host "$target_host" || true)"
+
+if [[ -z "$target_pass_entry" ]]; then
+    exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+fi
+
+target_password="$(pass_value_for_entry "$target_pass_entry")" || {
+    exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+}
+
+proxy_host=""
+proxy_pass_entry=""
+
+if [[ -n "$proxy_jump" && "$proxy_jump" != "none" ]]; then
+    proxy_host="$(first_proxyjump_host "$proxy_jump")"
+    proxy_pass_entry="$(sshpass_entry_for_host "$proxy_host" || true)"
+elif [[ "$proxy_command" =~ ssh[[:space:]]+([^[:space:]]+)[[:space:]]+-W[[:space:]] ]]; then
+    proxy_host="${BASH_REMATCH[1]}"
+    proxy_pass_entry="$(sshpass_entry_for_host "$proxy_host" || true)"
+fi
+
+if [[ -z "$proxy_pass_entry" ]]; then
+    exec 3<<<"$target_password"
+    exec sshpass -d 3 ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+fi
+
+proxy_password="$(pass_value_for_entry "$proxy_pass_entry")" || {
+    exec 3<<<"$target_password"
+    exec sshpass -d 3 ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
+}
+
+exec 3<<<"$proxy_password"
+exec 4<<<"$target_password"
+exec sshpass -d 4 ssh \
+    "${ssh_args[@]}" \
+    -o "ProxyCommand=sshpass -d 3 ssh ${proxy_host} -W %h:%p" \
+    "$target_host" \
+    "${remote_args[@]}"

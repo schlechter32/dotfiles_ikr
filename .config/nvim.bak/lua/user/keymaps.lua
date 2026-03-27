@@ -19,15 +19,25 @@ local M = {}
 -- nnoremap( "<C-w>h", ":vertical resize 5<CR>" )
 -- nnoremap ("<C-w>l", ":vertical resize -5<CR>")
 -- Resize window with Ctrl-w + hjkl, repeatable
-vim.api.nvim_set_keymap('n', '<C-w>j', ':<C-u>execute "resize -2" .. v:count1<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-w>k', ':<C-u>execute "resize +2" .. v:count1<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-w>h', ':<C-u>execute "vertical resize +2" .. v:count1<CR>', { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-w>l', ':<C-u>execute "vertical resize -2" .. v:count1<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<C-w>j", ':<C-u>execute "resize -2" .. v:count1<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap("n", "<C-w>k", ':<C-u>execute "resize +2" .. v:count1<CR>', { noremap = true, silent = true })
+vim.api.nvim_set_keymap(
+  "n",
+  "<C-w>h",
+  ':<C-u>execute "vertical resize +2" .. v:count1<CR>',
+  { noremap = true, silent = true }
+)
+vim.api.nvim_set_keymap(
+  "n",
+  "<C-w>l",
+  ':<C-u>execute "vertical resize -2" .. v:count1<CR>',
+  { noremap = true, silent = true }
+)
 nnoremap("<leader>i", ":Gen<CR>", { desc = "Ask local llm" })
 vnoremap("<leader>i", ":Gen<CR>", { desc = "Ask local llm" })
 --nnoremap("<leader>gs", function()
 --    require("neogit").open()
-    -- kj(ij(kl()))-- i
+-- kj(ij(kl()))-- i
 --end, { desc = "Open Neogit" })
 --nnoremap("<leader>gc", ":Neogit commit <CR>")
 --nnoremap("<leader>gp", ":Neogit pull<CR>")
@@ -35,8 +45,8 @@ vnoremap("<leader>i", ":Gen<CR>", { desc = "Ask local llm" })
 --nnoremap("<leader>gb", ":Telescope git_branches<CR>")
 
 nnoremap("<leader>a", function()
-    -- print "test"
-    require("Comment.api").toggle.linewise.current()
+  -- print "test"
+  require("Comment.api").toggle.linewise.current()
 end, { desc = "Toggle comment" })
 nnoremap("<leader>u", vim.cmd.UndotreeToggle, { desc = "Toggle Undootree" })
 --nnoremap("f", leap.leap(),{desc= "Leap forwards"})
@@ -56,13 +66,13 @@ nnoremap("<leader>ot", ":ObsidianTemplate note<CR>")
 nnoremap("<leader>on", ":ObsidianNew<CR>")
 -- Window +  better kitty navigation
 nnoremap("<C-j>", function()
-    if vim.fn.exists ":KittyNavigateDown" ~= 0 and TERM == "xterm-kitty" then
-        vim.cmd.KittyNavigateDown()
-    elseif vim.fn.exists ":NvimTmuxNavigateDown" ~= 0 then
-        vim.cmd.NvimTmuxNavigateDown()
-    else
-        vim.cmd.wincmd "j"
-    end
+  if vim.fn.exists ":KittyNavigateDown" ~= 0 and TERM == "xterm-kitty" then
+    vim.cmd.KittyNavigateDown()
+  elseif vim.fn.exists ":NvimTmuxNavigateDown" ~= 0 then
+    vim.cmd.NvimTmuxNavigateDown()
+  else
+    vim.cmd.wincmd "j"
+  end
 end)
 -- Pluto notebook bindings
 nnoremap("<leader>pia", ":call pluto#insert_cell_above()<CR>", { desc = "Insert cell above" })
@@ -76,33 +86,33 @@ nnoremap("<leader>phc", ":call pluto#hide_code()<CR>", { desc = "Hide code" })
 nnoremap("<leader>ptc", ":call pluto#toggle_code()<CR>", { desc = "Toggle code" })
 
 nnoremap("<C-k>", function()
-    if vim.fn.exists ":KittyNavigateUp" ~= 0 and TERM == "xterm-kitty" then
-        vim.cmd.KittyNavigateUp()
-    elseif vim.fn.exists ":NvimTmuxNavigateUp" ~= 0 then
-        vim.cmd.NvimTmuxNavigateUp()
-    else
-        vim.cmd.wincmd "k"
-    end
+  if vim.fn.exists ":KittyNavigateUp" ~= 0 and TERM == "xterm-kitty" then
+    vim.cmd.KittyNavigateUp()
+  elseif vim.fn.exists ":NvimTmuxNavigateUp" ~= 0 then
+    vim.cmd.NvimTmuxNavigateUp()
+  else
+    vim.cmd.wincmd "k"
+  end
 end)
 
 nnoremap("<C-l>", function()
-    if vim.fn.exists ":KittyNavigateRight" ~= 0 and TERM == "xterm-kitty" then
-        vim.cmd.KittyNavigateRight()
-    elseif vim.fn.exists ":NvimTmuxNavigateRight" ~= 0 then
-        vim.cmd.NvimTmuxNavigateRight()
-    else
-        vim.cmd.wincmd "l"
-    end
+  if vim.fn.exists ":KittyNavigateRight" ~= 0 and TERM == "xterm-kitty" then
+    vim.cmd.KittyNavigateRight()
+  elseif vim.fn.exists ":NvimTmuxNavigateRight" ~= 0 then
+    vim.cmd.NvimTmuxNavigateRight()
+  else
+    vim.cmd.wincmd "l"
+  end
 end)
 
 nnoremap("<C-h>", function()
-    if vim.fn.exists ":KittyNavigateLeft" ~= 0 and TERM == "xterm-kitty" then
-        vim.cmd.KittyNavigateLeft()
-    elseif vim.fn.exists ":NvimTmuxNavigateLeft" ~= 0 then
-        vim.cmd.NvimTmuxNavigateLeft()
-    else
-        vim.cmd.wincmd "h"
-    end
+  if vim.fn.exists ":KittyNavigateLeft" ~= 0 and TERM == "xterm-kitty" then
+    vim.cmd.KittyNavigateLeft()
+  elseif vim.fn.exists ":NvimTmuxNavigateLeft" ~= 0 then
+    vim.cmd.NvimTmuxNavigateLeft()
+  else
+    vim.cmd.wincmd "h"
+  end
 end)
 -- Swap between last two buffers
 nnoremap("<leader>'", "<C-^>", { desc = "Switch to last buffer" })
@@ -118,7 +128,7 @@ nnoremap("<leader>z", "<cmd>wq<cr>", { silent = false }, { desc = "Save and clos
 
 -- Map Oil to <leader>e
 nnoremap("<leader>e", function()
-    require("oil").toggle_float()
+  require("oil").toggle_float()
 end, { desc = "Open oil floating" })
 
 -- Center buffer while navigating
@@ -139,20 +149,20 @@ nnoremap("#", "#zz")
 
 -- Press 'S' for quick find/replace for the word under the cursor
 nnoremap("S", function()
-    local cmd = ":%s/<C-r><C-w>/<C-r><C-w>/gI<Left><Left><Left>"
-    local keys = vim.api.nvim_replace_termcodes(cmd, true, false, true)
-    vim.api.nvim_feedkeys(keys, "n", false)
+  local cmd = ":%s/<C-r><C-w>/<C-r><C-w>/gI<Left><Left><Left>"
+  local keys = vim.api.nvim_replace_termcodes(cmd, true, false, true)
+  vim.api.nvim_feedkeys(keys, "n", false)
 end)
 
 -- Open Spectre for global find/replace
 nnoremap("<leader>S", function()
-    require("spectre").toggle()
+  require("spectre").toggle()
 end, { desc = "Open Spectre global" })
 
 -- Open Spectre for global find/replace for the word under the cursor in normal mode
 -- TODO Fix, currently being overriden by Telescope
 nnoremap("<leader>sw", function()
-    require("spectre").open_visual { select_word = true }
+  require("spectre").open_visual { select_word = true }
 end, { desc = "Search current word" })
 
 -- Press 'H', 'L' to jump to start/end of a line (first/last char)
@@ -169,44 +179,44 @@ nnoremap("<leader>no", "<cmd>noh<cr>")
 
 -- Goto next diagnostic of any severity
 nnoremap("]d", function()
-    vim.diagnostic.goto_next {}
-    vim.api.nvim_feedkeys("zz", "n", false)
+  vim.diagnostic.goto_next {}
+  vim.api.nvim_feedkeys("zz", "n", false)
 end)
 
 -- Goto previous diagnostic of any severity
 nnoremap("[d", function()
-    vim.diagnostic.goto_prev {}
-    vim.api.nvim_feedkeys("zz", "n", false)
+  vim.diagnostic.goto_prev {}
+  vim.api.nvim_feedkeys("zz", "n", false)
 end)
 
 -- Goto next error diagnostic
 nnoremap("]e", function()
-    vim.diagnostic.goto_next { severity = vim.diagnostic.severity.ERROR }
-    vim.api.nvim_feedkeys("zz", "n", false)
+  vim.diagnostic.goto_next { severity = vim.diagnostic.severity.ERROR }
+  vim.api.nvim_feedkeys("zz", "n", false)
 end)
 
 -- Goto previous error diagnostic
 nnoremap("[e", function()
-    vim.diagnostic.goto_prev { severity = vim.diagnostic.severity.ERROR }
-    vim.api.nvim_feedkeys("zz", "n", false)
+  vim.diagnostic.goto_prev { severity = vim.diagnostic.severity.ERROR }
+  vim.api.nvim_feedkeys("zz", "n", false)
 end)
 
 -- Goto next warning diagnostic
 nnoremap("]w", function()
-    vim.diagnostic.goto_next { severity = vim.diagnostic.severity.WARN }
-    vim.api.nvim_feedkeys("zz", "n", false)
+  vim.diagnostic.goto_next { severity = vim.diagnostic.severity.WARN }
+  vim.api.nvim_feedkeys("zz", "n", false)
 end)
 
 -- Goto previous warning diagnostic
 nnoremap("[w", function()
-    vim.diagnostic.goto_prev { severity = vim.diagnostic.severity.WARN }
-    vim.api.nvim_feedkeys("zz", "n", false)
+  vim.diagnostic.goto_prev { severity = vim.diagnostic.severity.WARN }
+  vim.api.nvim_feedkeys("zz", "n", false)
 end)
 
 nnoremap("<leader>d", function()
-    vim.diagnostic.open_float {
-        border = "rounded",
-    }
+  vim.diagnostic.open_float {
+    border = "rounded",
+  }
 end, { desc = "Floating diagnostics" })
 
 -- Place all dignostics into a qflist
@@ -250,47 +260,47 @@ nnoremap("gp", ":lua OpenFileInxdg()<CR>", { silent = true })
 -- Harpoon keybinds --
 -- Open harpoon ui
 nnoremap("<leader>ho", function()
-    harpoon_ui.toggle_quick_menu()
+  harpoon_ui.toggle_quick_menu()
 end, { desc = "Open Harpoon" })
 
 -- Add current file to harpoon
 nnoremap("<leader>ha", function()
-    harpoon_mark.add_file()
+  harpoon_mark.add_file()
 end, { desc = "Add Harpoon" })
 
 -- Remove current file from harpoon
 nnoremap("<leader>hr", function()
-    harpoon_mark.rm_file()
+  harpoon_mark.rm_file()
 end, { desc = "Remove Harpoon" })
 
 -- Remove all files from harpoon
 nnoremap("<leader>hc", function()
-    harpoon_mark.clear_all()
+  harpoon_mark.clear_all()
 end, { desc = "Clear all Harpoon" })
 
 -- Quickly jump to harpooned files
 nnoremap("<leader>1", function()
-    harpoon_ui.nav_file(1)
+  harpoon_ui.nav_file(1)
 end, { desc = "Jump to Spear 1" })
 
 nnoremap("<leader>2", function()
-    harpoon_ui.nav_file(2)
+  harpoon_ui.nav_file(2)
 end, { desc = "Jump to Spear 2" })
 
 nnoremap("<leader>3", function()
-    harpoon_ui.nav_file(3)
+  harpoon_ui.nav_file(3)
 end, { desc = "Jump to Spear 3" })
 
 nnoremap("<leader>4", function()
-    harpoon_ui.nav_file(4)
+  harpoon_ui.nav_file(4)
 end, { desc = "Jump to Spear 4" })
 
 nnoremap("<leader>5", function()
-    harpoon_ui.nav_file(5)
+  harpoon_ui.nav_file(5)
 end, { desc = "Jump to Spear 5" })
 
 nnoremap("<leader>6", function()
-    harpoon_ui.nav_file(6)
+  harpoon_ui.nav_file(6)
 end, { desc = "Jump to Spear 6" })
 -- Git keymaps --
 -- nnoremap("<leader>gb", ":Gitsigns toggle_current_line_blame<cr>")
@@ -352,44 +362,44 @@ end, { desc = "Jump to Spear 6" })
 
 -- LSP Keybinds (exports a function to be used in ../../after/plugin/lsp.lua b/c we need a reference to the current buffer) --
 M.map_lsp_keybinds = function(buffer_number)
-    nnoremap("<leader>rn", vim.lsp.buf.rename, { desc = "LSP: [R]e[n]ame", buffer = buffer_number })
-    nnoremap("<leader>ca", vim.lsp.buf.code_action, { desc = "LSP: [C]ode [A]ction", buffer = buffer_number })
+  nnoremap("<leader>rn", vim.lsp.buf.rename, { desc = "LSP: [R]e[n]ame", buffer = buffer_number })
+  nnoremap("<leader>ca", vim.lsp.buf.code_action, { desc = "LSP: [C]ode [A]ction", buffer = buffer_number })
 
-    -- nnoremap("gd", vim.lsp.buf.definition, { desc = "LSP: [G]oto [D]efinition", buffer = buffer_number })
+  -- nnoremap("gd", vim.lsp.buf.definition, { desc = "LSP: [G]oto [D]efinition", buffer = buffer_number })
 
-    -- Telescope LSP keybinds --
-    -- nnoremap(
-    --     "gr",
-    --     require("telescope.builtin").lsp_references,
-    --     { desc = "LSP: [G]oto [R]eferences", buffer = buffer_number }
-    -- )
-    --
-    -- nnoremap(
-    --     "gi",
-    --     require("telescope.builtin").lsp_implementations,
-    --     { desc = "LSP: [G]oto [I]mplementation", buffer = buffer_number }
-    -- )
-    --
-    -- nnoremap(
-    --     "<leader>bs",
-    --     require("telescope.builtin").lsp_document_symbols,
-    --     { desc = "LSP: [B]uffer [S]ymbols", buffer = buffer_number }
-    -- )
-    --
-    -- nnoremap(
-    --     "<leader>ps",
-    --     require("telescope.builtin").lsp_workspace_symbols,
-    --     { desc = "LSP: [P]roject [S]ymbols", buffer = buffer_number }
-    -- )
+  -- Telescope LSP keybinds --
+  -- nnoremap(
+  --     "gr",
+  --     require("telescope.builtin").lsp_references,
+  --     { desc = "LSP: [G]oto [R]eferences", buffer = buffer_number }
+  -- )
+  --
+  -- nnoremap(
+  --     "gi",
+  --     require("telescope.builtin").lsp_implementations,
+  --     { desc = "LSP: [G]oto [I]mplementation", buffer = buffer_number }
+  -- )
+  --
+  -- nnoremap(
+  --     "<leader>bs",
+  --     require("telescope.builtin").lsp_document_symbols,
+  --     { desc = "LSP: [B]uffer [S]ymbols", buffer = buffer_number }
+  -- )
+  --
+  -- nnoremap(
+  --     "<leader>ps",
+  --     require("telescope.builtin").lsp_workspace_symbols,
+  --     { desc = "LSP: [P]roject [S]ymbols", buffer = buffer_number }
+  -- )
 
-    -- See `:help K` for why this keymap
-    nnoremap("K", vim.lsp.buf.hover, { desc = "LSP: Hover Documentation", buffer = buffer_number })
-    nnoremap("<leader>k", vim.lsp.buf.signature_help, { desc = "LSP: Signature Documentation", buffer = buffer_number })
-    inoremap("<C-k>", vim.lsp.buf.signature_help, { desc = "LSP: Signature Documentation", buffer = buffer_number })
+  -- See `:help K` for why this keymap
+  nnoremap("K", vim.lsp.buf.hover, { desc = "LSP: Hover Documentation", buffer = buffer_number })
+  nnoremap("<leader>k", vim.lsp.buf.signature_help, { desc = "LSP: Signature Documentation", buffer = buffer_number })
+  inoremap("<C-k>", vim.lsp.buf.signature_help, { desc = "LSP: Signature Documentation", buffer = buffer_number })
 
-    -- Lesser used LSP functionality
-    -- nnoremap("gD", vim.lsp.buf.declaration, { desc = "LSP: [G]oto [D]eclaration", buffer = buffer_number })
-    -- nnoremap("td", vim.lsp.buf.type_definition, { desc = "LSP: [T]ype [D]efinition", buffer = buffer_number })
+  -- Lesser used LSP functionality
+  -- nnoremap("gD", vim.lsp.buf.declaration, { desc = "LSP: [G]oto [D]eclaration", buffer = buffer_number })
+  -- nnoremap("td", vim.lsp.buf.type_definition, { desc = "LSP: [T]ype [D]efinition", buffer = buffer_number })
 end
 
 -- Symbol Outline keybind
@@ -416,9 +426,9 @@ vnoremap("<space>", "<nop>")
 vnoremap("L", "$<left>")
 vnoremap("H", "^")
 vnoremap(
-    "<leader>a",
-    "<ESC><cmd>lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>",
-    { desc = "Togle comment" }
+  "<leader>a",
+  "<ESC><cmd>lua require('Comment.api').toggle.linewise(vim.fn.visualmode())<CR>",
+  { desc = "Togle comment" }
 )
 
 -- Paste without losing the contents of the register
@@ -438,13 +448,13 @@ vnoremap("<C-k>", ":m '<-2<CR>gv=gv")
 
 -- Reselect the last visual selection
 xnoremap("<<", function()
-    vim.cmd "normal! <<"
-    vim.cmd "normal! gv"
+  vim.cmd "normal! <<"
+  vim.cmd "normal! gv"
 end)
 
 xnoremap(">>", function()
-    vim.cmd "normal! >>"
-    vim.cmd "normal! gv"
+  vim.cmd "normal! >>"
+  vim.cmd "normal! gv"
 end)
 
 -- Terminal --

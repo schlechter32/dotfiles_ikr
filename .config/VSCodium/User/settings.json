@@ -1,0 +1,241 @@
+{
+"extensionsGallery": {
+  "serviceUrl": "https://marketplace.visualstudio.com/_apis/public/gallery",
+  "cacheUrl": "https://vscode.blob.core.windows.net/gallery/index",
+  "itemUrl": "https://marketplace.visualstudio.com/items"
+}
+    "remote-ssh.mount.compressionEnabled": true,
+     "editor.lineNumbersMinChars": 2,
+  "editor.lineDecorationsWidth": 0,
+  // "editor.glyphMargin": false,
+  "editor.folding": false,
+    "remote-ssh.mount.prefetchEnabled": true,
+    "remote.SSH.configFile": "/u/home/wima/nclshrnk/.ssh/config",
+    "workbench.iconTheme": "catppuccin-frappe",
+    "workbench.colorTheme": "Catppuccin Frappé",
+    "editor.fontFamily": "'MonoLisa script','Hack Nerd Font'",
+    "editor.codeLensFontFamily": "MonoLisa script",
+    "editor.fontLigatures": true,
+    "editor.fontWeight": "normal",
+    "terminal.integrated.fontLigatures.enabled": true,
+    "terminal.integrated.gpuAcceleration": "off",
+    "terminal.integrated.fontLigatures.featureSettings": "\"calt\" on, \"liga\" on, \"ss03\", \"ss02\"",
+    "terminal.integrated.fontFamily": "JetBrainsMono Nerd Font",
+    "extensions.experimental.affinity": {
+        "asvetliakov.vscode-neovim": 1
+    },
+    "vscode-neovim.neovimExecutablePaths.linux": "/u/home/wima/nclshrnk/.local/share/bob/nvim-bin/nvim",
+    "vscode-neovim.neovimInitVimPaths.linux": "/u/home/wima/nclshrnk/dotfiles_ikr/.config/nvim_code/init.lua",
+    "terminal.integrated.commandsToSkipShell": [
+        "language-julia.interrupt"
+    ],
+    "julia.symbolCacheDownload": true,
+    "workbench.preferredDarkColorTheme": "Catppuccin Macchiato",
+    "workbench.preferredHighContrastColorTheme": "Catppuccin Macchiato",
+    "workbench.editor.enablePreviewFromCodeNavigation": true,
+    "terminal.integrated.defaultProfile.linux": "zsh",
+    "vim.easymotionTriggerKey": "s",
+    "vim.camelCaseMotion.enable": true,
+    "vim.easymotion": true,
+  "vim.easymotionKeys": "asdfghjklqwertyuiopzxcvbnm",
+    "vim.highlightedyank.enable": true,
+    "vim.leader": " ",
+    "vim.showMarksInGutter": true,
+    "vim.statusBarColorControl": true,
+    "workbench.colorCustomizations": {
+      "statusBar.background": "#005f5f",
+      "statusBar.noFolderBackground": "#005f5f",
+      "statusBar.debuggingBackground": "#005f5f",
+      "statusBar.foreground": "#ffffff",
+      "statusBar.debuggingForeground": "#ffffff",
+      "activityBar.activeBackground": "#eaaef3",
+      "activityBar.background": "#eaaef3",
+      "activityBar.foreground": "#15202b",
+      "activityBar.inactiveForeground": "#15202b99",
+      "activityBarBadge.background": "#8b7b15",
+      "activityBarBadge.foreground": "#e7e7e7",
+      "commandCenter.border": "#15202b99",
+      "sash.hoverBorder": "#eaaef3",
+      "statusBarItem.hoverBackground": "#d454e7",
+      "statusBarItem.remoteBackground": "#df81ed",
+      "statusBarItem.remoteForeground": "#15202b",
+      "titleBar.activeBackground": "#df81ed",
+      "titleBar.activeForeground": "#15202b",
+      "titleBar.inactiveBackground": "#df81ed99",
+      "titleBar.inactiveForeground": "#15202b99"
+    },
+    "vim.useSystemClipboard": true,
+    "vim.visualstar": true,
+  "editor.tokenColorCustomizations": {
+    "comments": "#F2CDCD"
+  },
+  "vim.insertModeKeyBindingsNonRecursive": [
+    {
+      "before": ["j", "j"],
+      "after": ["<Esc>"]
+    }
+  ],
+  "vim.insertModeKeyBindings": [],
+  "vim.normalModeKeyBindings": [],
+  "vim.normalModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<leader>", "r", "n"],
+      "commands": ["editor.action.rename"]
+    },
+    {
+      "before": ["<leader>", "l", "v"],
+      "commands": ["latex-workshop.synctex"]
+    },
+  {
+      "before": ["K"],
+      "commands": ["editor.action.showHover"]
+    },
+    {
+      "before": ["s"],
+      "after": ["<leader>", "<leader>", "s"],
+    },
+ {
+      "before": ["<leader>", "e"],
+      "commands": ["workbench.action.toggleSidebarVisibility"]
+    },
+//   { "before": ["<C-h>"], "commands": ["workbench.action.focusLeftGroup"] },
+//     { "before": ["<C-j>"], "commands": ["workbench.action.focusBelowGroup"] },
+//     { "before": ["<C-k>"], "commands": ["workbench.action.focusAboveGroup"] },
+//     { "before": ["<C-l>"], "commands": ["workbench.action.focusRightGroup"] },
+//  {
+//     },
+{
+      "before": ["<leader>", "<leader>"],
+      "commands": ["workbench.action.quickOpen"]
+    },
+    { "before": ["<leader>", "w"], "commands": [":write"] },
+    { "before": ["<leader>", "q"], "commands": [":quit"] },
+    { "before": ["<leader>", "z"], "commands": [":wq"] },
+
+    { "before": ["U"], "after": ["<C-r>"] },
+
+    { "before": ["L"], "after": ["$"] },
+    { "before": ["H"], "after": ["^"] },
+
+    { "before": ["<leader>", "n", "o"], "commands": [":nohlsearch"] },
+
+    { "before": ["<C-u>"], "after": ["<C-u>", "z", "z"] },
+    { "before": ["<C-f>"], "after": ["<C-f>", "z", "z"] },
+    { "before": ["<C-d>"], "after": ["<C-d>", "z", "z"] },
+    { "before": ["{"], "after": ["{", "z", "z"] },
+    { "before": ["}"], "after": ["}", "z", "z"] },
+    { "before": ["N"], "after": ["N", "z", "z"] },
+    { "before": ["n"], "after": ["n", "z", "z"] },
+    { "before": ["G"], "after": ["G", "z", "z"] },
+    { "before": ["g", "g"], "after": ["g", "g", "z", "z"] },
+    { "before": ["<C-i>"], "after": ["<C-i>", "z", "z"] },
+    { "before": ["<C-o>"], "after": ["<C-o>", "z", "z"] },
+    { "before": ["%"], "after": ["%", "z", "z"] },
+    { "before": ["*"], "after": ["*", "z", "z"] },
+    { "before": ["#"], "after": ["#", "z", "z"] },
+    {
+      "before": ["<leader>", "s", "g"],
+  "commands": ["workbench.action.quickTextSearch"]
+    },
+
+    { "before": ["M"], "after": ["`"] },
+  {
+      "before": ["<leader>", "p"],
+      "commands": ["workbench.action.showCommands"]
+    },
+    {
+      "before": ["<leader>", "p", "s"],
+      "commands": ["workbench.action.showAllSymbols"]
+    },
+    {
+      "before": ["<leader>", "f", "s"],
+      "commands": ["workbench.action.gotoSymbol"]
+    },
+ {
+      "before": ["<leader>", "l", "g"],
+      "commands": ["workbench.view.scm"]
+    },
+    {
+      "before": ["<leader>", "a"],
+      "commands": ["editor.action.commentLine"]
+    }
+
+  ],
+  "vim.operatorPendingModeKeyBindings": [],
+  "vim.operatorPendingModeKeyBindingsNonRecursive": [],
+  "vim.visualModeKeyBindings": [],
+  "vim.visualModeKeyBindingsNonRecursive": [
+    {
+      "before": ["<C-j>"],
+      "commands": ["editor.action.moveLinesDownAction"]
+    },
+    {
+      "before": ["<C-k>"],
+      "commands": ["editor.action.moveLinesUpAction"]
+    },
+    {
+      "before": ["<C-n>"],
+      "commands": ["workbench.action.previousEditor"]
+    },
+    {
+      "before": ["<C-p>"],
+      "commands": ["workbench.action.nextEditor"]
+    },
+    {
+      "before": ["<leader>", "p"],
+      "after": ["\"", "_", "d", "P"]
+    },
+    {
+      "before": ["<leader>", "a"],
+      "commands": ["editor.action.commentLine"]
+    }
+],
+"vim.smartRelativeLine": true,
+"files.autoSave": "onFocusChange",
+
+  "workbench.editor.showTabs": "single",
+  "breadcrumbs.enabled": true,
+
+"workbench.activityBar.location": "top",
+"editor.minimap.enabled": false,
+ "terminal.integrated.tabs.enabled": false,
+  "terminal.intetttttgrated.tabs.location": "left",
+    "terminal.integrated.tabs.showActiveTerminal": "single",
+    "editor.fontSize": 15,
+    "zenMode.restore": true,
+    "zenMode.fullScreen": false,
+    "zenMode.centerLayout": false,
+    "zenMode.hideActivityBar": true,
+    "zenMode.hideStatusBar": true,
+    "zenMode.hideLineNumbers": false,
+    "workbench.statusBar.visible": true,
+    "git.enableSmartCommit": true,
+    "git.confirmSync": false,
+    "git.autofetch": true,
+    "jupyter.logKernelOutputSeparately": true,
+    "jupyter.logging.level": "trace",
+    "julia.enableTelemetry": false,
+    "latex-workshop.latex.autoBuild.run": "never",
+    "cSpell.language": "en,de-DE",
+    "cSpell.userWords": [
+      "Allokationsverfahren",
+      "ANTILLAS",
+      "Intentarchitektur",
+      "Methodikforschung",
+      "pdflatex",
+      "SUSTAINET",
+      "Vorhabensbezeichnung"
+    ],
+    "latex-workshop.texcount.path": "/u/home/wima/nclshrnk/nbin/texcount",
+    "latex-utilities.countWord.path": "/u/home/wima/nclshrnk/nbin/texcount",
+    "editor.suggest.preview": true,
+    "editor.wordBasedSuggestions": "currentDocument",
+    "explorer.confirmDragAndDrop": false,
+    "latex-workshop.latex.autoBuild.cleanAndRetry.enabled": false,
+    "latex-workshop.latex.outDir": "build",
+
+
+
+
+
+}

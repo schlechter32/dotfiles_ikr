@@ -1,0 +1,11 @@
+#!/usr/bin/sh
+set -eu
+
+host="$1"
+port="$2"
+
+knocklab --target "$host" >/dev/null 2>&1 || true
+sleep 2
+
+# block forever until ssh closes
+exec nc "$host" "$port"

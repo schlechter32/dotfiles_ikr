@@ -1,2 +1,2 @@
 sudo mkdir -p /ext/cplex
-sudo rsync -avz $USER@ecobra2:/ext/cplex/* /ext/cplex
+sudo rsync -avz $USER@cobra2:/ext/cplex/* /ext/cplex

@@ -2,8 +2,9 @@ export EDITOR=nvim
 GPG_TTY=$(tty)
 export GPG_TTY
 # PATHS
-source $HOME/dotfiles_ikr/zsh/paths.zsh
-source $HOME/dotfiles_ikr/zsh/homebrew.zsh
+source "$HOME/dotfiles/zsh/paths.zsh"
+source "$HOME/dotfiles/zsh/homebrew.zsh"
+
 
 export TMS_CONFIG_FILE="$HOME/.config/tms/config.toml"
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
@@ -30,10 +31,12 @@ zinit snippet OMZP::sudo
 zinit snippet OMZP::command-not-found
 
 # Load completions
-autoload -Uz compinit 
+autoload -Uz compinit
 compinit
 
 zinit cdreplay -q
+
+source "$HOME/dotfiles/zsh/devpod.zsh"
 
 # History
 HISTSIZE=5000
@@ -57,9 +60,9 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
 
-source $HOME/dotfiles_ikr/zsh/aliases.zsh
-source $HOME/dotfiles_ikr/zsh/functions.zsh
-source $HOME/dotfiles_ikr/zsh/ikrhosts.zsh
+source "$HOME/dotfiles/zsh/aliases.zsh"
+source "$HOME/dotfiles/zsh/functions.zsh"
+source "$HOME/dotfiles/zsh/ikrhosts.zsh"
 
 if [[ $(uname) == "Darwin" ]]; then
     alias nsh="nsh-darwin-arm64" 
@@ -70,7 +73,11 @@ fi
 # Shell integrations
 eval "$(zoxide init zsh --cmd cd)"
 eval "$(starship init zsh)"
-eval "$(fzf --zsh)"
+eval "$(tv init zsh)"
+
+autoload -Uz edit-command-line
+zle -N edit-command-line
+
 # Secrets
 if [ -f "$HOME/.secrets" ]; then
 source ~/.secrets
@@ -84,7 +91,20 @@ function zvm_after_init() {
     bindkey '^e' autosuggest-accept
     bindkey '^u' autosuggest-toggle
 
-    # Use fzf for command history search
-    bindkey '^R' fzf-history-widget
+    bindkey '^R' tv-shell-history
+    bindkey '^T' tv-smart-autocomplete
+    bindkey -M viins '^R' tv-shell-history
+    bindkey -M viins '^T' tv-smart-autocomplete
+    bindkey -M vicmd '^R' tv-shell-history
+    bindkey -M vicmd '^T' tv-smart-autocomplete
+    bindkey '^X^E' edit-command-line
+    bindkey -M viins '^X^E' edit-command-line
+    bindkey -M vicmd '^X^E' edit-command-line
+    # unbindkey '^T'
 }
 zvm_after_init
+eval "$(uv generate-shell-completion zsh)"
+
+# opencode
+export PATH=/home/nclshrnk/.opencode/bin:$PATH
+eval "$(tv init zsh)"

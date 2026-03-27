@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+workspace="${1:-$PWD}"
+mode="${2:-auto}"
+provider="${3:-}"
+
+if [ "$mode" = "auto" ]; then
+    if command -v nvidia-smi >/dev/null 2>&1 || [ -e /dev/nvidia0 ]; then
+        mode="cuda"
+    elif [ -e /dev/kfd ]; then
+        mode="rocm"
+    else
+        mode="cpu"
+    fi
+fi
+
+case "$mode" in
+    cpu|cuda|rocm) ;;
+    *)
+        echo "usage: $(basename "$0") [workspace-path] [cpu|cuda|rocm|auto] [provider]" >&2
+        exit 1
+        ;;
+esac
+
+if [ -n "$provider" ] && [ ! -e "$workspace" ]; then
+    workspace_abs="$workspace"
+else
+    workspace_abs="$(realpath "$workspace")"
+fi
+workspace_hash="$(printf '%s' "$workspace_abs" | sha256sum | cut -c1-10)"
+workspace_name="$(basename "$workspace_abs" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9._-' '-')"
+workspace_id="${workspace_name}-${workspace_hash}"
+devcontainer_path=".devcontainer/devcontainer.${mode}.json"
+dotfiles_repo="https://github.com/schlechter32/dotfiles_ikr.git"
+
+provider_arg=()
+[ -n "$provider" ] && provider_arg=(--provider "$provider")
+
+exec devpod up "$workspace_abs" \
+    --id "$workspace_id" \
+    --ide none \
+    --dotfiles "$dotfiles_repo" \
+    --devcontainer-path "$devcontainer_path" \
+    "${provider_arg[@]}"

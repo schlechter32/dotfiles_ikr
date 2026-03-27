@@ -1,0 +1,18 @@
+[metadata]
+name = "dotfiles-files"
+description = "Browse files with bat preview"
+requirements = ["fd", "bat"]
+
+[source]
+command = "fd -H -t f -E .git"
+
+[preview]
+command = "bat --color=always --style=plain '{}'"
+
+[keybindings]
+enter = "actions:edit"
+
+[actions.edit]
+description = "Open the selected file in the editor"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"

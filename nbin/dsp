@@ -1,1 +1,10 @@
-export DISPLAY="`tmux show-env | sed -n 's/^DISPLAY=//p'`"
+# export DISPLAY="`tmux show-env | sed -n 's/^DISPLAY=//p'`"
+# Run this from the client shell (the one with working DISPLAY)
+tmux set-environment DISPLAY "$DISPLAY"
+tmux set-environment XAUTHORITY "$XAUTHORITY"
+
+# from the shell where xclip works
+# dpy=$DISPLAY
+# auth=$XAUTHORITY
+# tmux setenv DISPLAY "$dpy"
+# [ -n "$auth" ] && tmux setenv XAUTHORITY "$auth"

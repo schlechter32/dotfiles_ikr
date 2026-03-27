@@ -1,0 +1,4 @@
+sudo mkdir -p /ext
+sudo mkdir -p $HOME/ext_temp
+rsync -avz nclshrnk@cobra2:/ext/ $HOME/ext_temp
+sudo rsync -avz $HOME/ext_temp/ /ext
