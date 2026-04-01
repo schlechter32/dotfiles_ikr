@@ -6,6 +6,7 @@ set -euo pipefail
 #   sandboxed-agent claude /bulk/.../task-42 "fix the auth bug"
 #   sandboxed-agent opencode /bulk/.../task-42 "add tests"
 #   sandboxed-agent codex /bulk/.../task-42 "refactor utils"
+#   sandboxed-agent zsh /bulk/.../task-42
 
 AGENT="$1"
 WORKTREE="$(realpath "$2")"
@@ -73,6 +74,20 @@ BWRAP_ARGS=(
     --chdir "$WORKTREE"
 )
 
+if [[ -e /sys ]]; then
+    BWRAP_ARGS+=(--ro-bind /sys /sys)
+fi
+
+for gpu_dev in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm /dev/nvidia-uvm-tools /dev/kfd; do
+    if [[ -e "$gpu_dev" ]]; then
+        BWRAP_ARGS+=(--dev-bind "$gpu_dev" "$gpu_dev")
+    fi
+done
+
+if [[ -e /dev/nvidia-caps ]]; then
+    BWRAP_ARGS+=(--ro-bind /dev/nvidia-caps /dev/nvidia-caps)
+fi
+
 # Build the agent command
 case "$AGENT" in
     claude)
@@ -96,8 +111,11 @@ case "$AGENT" in
             AGENT_CMD=(codex)
         fi
         ;;
+    zsh)
+        AGENT_CMD=(zsh)
+        ;;
     *)
-        echo "Unknown agent: $AGENT" >&2
+        echo "Unknown agent: $AGENT (expected claude, opencode, codex, or zsh)" >&2
         exit 1
         ;;
 esac

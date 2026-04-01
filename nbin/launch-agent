@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: launch-agent <agent> <worktree-path> <prompt>
+# Usage: launch-agent <agent> <worktree-path> [prompt...]
 # Example:
 #   launch-agent claude /bulk/.../task-42 "fix the auth bug"
+#   launch-agent zsh /bulk/.../task-42
 
 AGENT="$1"
 WORKTREE="$2"
