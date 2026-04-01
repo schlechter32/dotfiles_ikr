@@ -1,0 +1,7 @@
+# /home/agent/bin/agent-status
+#!/usr/bin/env bash
+for session in $(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep '^agent-'); do
+  echo "=== $session ==="
+  tmux capture-pane -t "$session" -p | tail -5
+  echo ""
+done

@@ -108,3 +108,6 @@ eval "$(uv generate-shell-completion zsh)"
 # opencode
 export PATH=/home/nclshrnk/.opencode/bin:$PATH
 eval "$(tv init zsh)"
+
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+export PATH="$HOME/.npm-global/bin:$PATH"

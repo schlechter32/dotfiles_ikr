@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Usage: launch-agent <agent> <worktree-path> <prompt>
+# Example:
+#   launch-agent claude /bulk/.../task-42 "fix the auth bug"
+
+AGENT="$1"
+WORKTREE="$2"
+shift 2
+PROMPT="$*"
+
+TASK_ID="$(basename "$WORKTREE")"
+SESSION_NAME="agent-${TASK_ID}"
+
+# Check if session already exists
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+  echo "ERROR: Session $SESSION_NAME already exists"
+  echo "  Attach: tmux attach -t $SESSION_NAME"
+  echo "  Kill:   tmux kill-session -t $SESSION_NAME"
+  exit 1
+fi
+
+tmux new-session -d -s "$SESSION_NAME" \
+  "/home/agent/bin/sandboxed-agent $AGENT '$WORKTREE' '$PROMPT'; echo ''; echo '[DONE] Agent finished. Press enter to close.'; read"
+
+echo "Launched: $SESSION_NAME ($AGENT)"
+echo "  Monitor:  tmux capture-pane -t $SESSION_NAME -p"
+echo "  Attach:   tmux attach -t $SESSION_NAME"
+echo "  Kill:     tmux kill-session -t $SESSION_NAME"
