@@ -17,4 +17,4 @@ mkdir -p "$XDG_DATA_HOME" "$XDG_STATE_HOME" "$XDG_CACHE_HOME"
 
 nvim --headless +qa
 nvim --headless "+Lazy! sync" +qa
-nvim --headless "+lua assert(require('lazy'))" "+lua assert(require('telescope'))" "+lua assert(require('avante'))" "+lua assert(type(vim.g.colors_name) == 'string' and vim.g.colors_name:match('^noctis'), 'expected noctis colorscheme')" +qa
+nvim --headless "+lua assert(require('lazy'))" "+lua assert(require('telescope'))" "+lua assert(require('codecompanion'))" "+lua assert(type(vim.g.colors_name) == 'string' and vim.g.colors_name:match('^noctis'), 'expected noctis colorscheme')" +qa

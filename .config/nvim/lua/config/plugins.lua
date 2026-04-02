@@ -4,7 +4,7 @@ local plugins = {
 	{ "chentoast/marks.nvim" },
 	{ "nvim-tree/nvim-web-devicons" },
 	{ "neovim/nvim-lspconfig" },
-	{ "nvim-treesitter/nvim-treesitter", branch = "master", build = ":TSUpdate" },
+	{ "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
 	{ "nvim-treesitter/nvim-treesitter-context" },
 	{ "alexghergh/nvim-tmux-navigation" },
 	{ "saghen/blink.cmp", version = "v1.7.0" },
@@ -27,82 +27,35 @@ local plugins = {
 	{ "iamcco/markdown-preview.nvim", build = "cd app && npm install", ft = { "markdown" } },
 	{ "kevinhwang91/nvim-bqf" },
 	{ "MeanderingProgrammer/render-markdown.nvim" },
+	{ "stevearc/dressing.nvim" },
 	{
 		"nvim-telescope/telescope.nvim",
 		dependencies = { "nvim-lua/plenary.nvim" },
 	},
-	{ "MunifTanjim/nui.nvim" },
-	{ "stevearc/dressing.nvim" },
 	{
-		"yetone/avante.nvim",
-		build = vim.fn.has("win32") ~= 0
-				and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
-			or "make",
-		version = false,
+		"olimorris/codecompanion.nvim",
 		dependencies = {
 			"nvim-lua/plenary.nvim",
-			"MunifTanjim/nui.nvim",
-			"nvim-telescope/telescope.nvim",
-			"MeanderingProgrammer/render-markdown.nvim",
-			"nvim-tree/nvim-web-devicons",
+			"nvim-treesitter/nvim-treesitter",
 		},
 		opts = {
-			provider = "opencode",
-			input = {
-				provider = "dressing",
-				provider_opts = {},
-			},
-			selector = {
-				provider = "telescope",
-			},
-			acp_providers = {
-				opencode = {
-					command = vim.fn.exepath("opencode"),
-					args = { "acp" },
+			interactions = {
+				chat = {
+					adapter = "opencode",
 				},
-			},
-			behaviour = {
-				auto_suggestions = false,
-				auto_set_keymaps = true,
-				auto_apply_diff_after_generation = false,
-				minimize_diff = true,
-				auto_add_current_file = true,
-			},
-			providers = {
-				claude = {
-					-- endpoint = "https://api.anthropic.com",
-					auth_type = "max",
-					-- model = "claude-sonnet-4-20250514",
-					timeout = 30000,
-					extra_request_body = {
-						temperature = 0,
-						max_tokens = 4096,
-					},
-				},
-				openai = {
-					endpoint = "https://api.openai.com/v1",
-					model = "gpt-4o",
-					timeout = 30000,
-					extra_request_body = {
-						temperature = 0,
-						max_tokens = 4096,
-					},
-				},
-			},
-			mappings = {
-				ask = "<leader>aa",
-				edit = "<leader>ae",
-				refresh = "<leader>ar",
-				toggle = {
-					default = "<leader>at",
-					debug = "<leader>ad",
-					hint = "<leader>ah",
-					suggestion = "<leader>as",
+				inline = {
+					adapter = "opencode",
 				},
 			},
 		},
 	},
 }
+
+-- Host-gated: add sidekick.nvim on Cobra/netserv hosts
+local cobra_plugins = require("install_on_cobra")
+for _, p in ipairs(cobra_plugins) do
+	table.insert(plugins, p)
+end
 
 require("lazy").setup(plugins, {
 	defaults = {
@@ -119,7 +72,11 @@ require("lazy").setup(plugins, {
 
 require("todo-comments").setup({})
 require("fidget").setup({})
-require("dressing").setup({})
+require("dressing").setup({
+	select = {
+		backend = { "telescope", "builtin" },
+	},
+})
 
 require("telescope").setup({
 	defaults = {
@@ -128,7 +85,9 @@ require("telescope").setup({
 			prompt_position = "top",
 			width = 0.95,
 			height = 0.95,
-			preview_height = 0.55,
+			vertical = {
+				preview_height = 0.55,
+			},
 		},
 		sorting_strategy = "ascending",
 	},
@@ -223,8 +182,14 @@ vim.cmd([[ command! Format lua require("conform").format() ]])
 
 require("lazygit_float")
 require("obsidian_setup")
-require("local_avante").setup()
+require("local_sidekick").setup()
 require("mason").setup()
+
+vim.keymap.set({ "n", "v" }, "<leader>aa", "<cmd>CodeCompanionActions<cr>", { noremap = true, silent = true, desc = "CodeCompanion Actions" })
+vim.keymap.set({ "n", "v" }, "<leader>at", "<cmd>CodeCompanionChat Toggle<cr>", { noremap = true, silent = true, desc = "CodeCompanion Toggle Chat" })
+vim.keymap.set("v", "<leader>ae", "<cmd>CodeCompanionChat Add<cr>", { noremap = true, silent = true, desc = "CodeCompanion Add Selection" })
+vim.keymap.set("n", "<leader>ai", "<cmd>CodeCompanion<cr>", { noremap = true, silent = true, desc = "CodeCompanion Inline" })
+vim.cmd([[cab cc CodeCompanion]])
 
 local cmp = require("blink.cmp")
 cmp.setup({
@@ -246,19 +211,12 @@ vim.api.nvim_set_hl(0, "FlashMatch", { fg = "#ecc48d", underline = true })
 require("mini.ai").setup()
 require("nvim-tmux-navigation").setup({})
 
-local ok_ts, ts_configs = pcall(require, "nvim-treesitter.configs")
-if ok_ts then
-	ts_configs.setup({
-		ensure_installed = { "lua", "julia", "markdown", "markdown_inline", "python", "latex", "bash", "vim" },
-		highlight = {
-			enable = true,
-			additional_vim_regex_highlighting = { "markdown" },
-		},
-		incremental_selection = { enable = true },
-		textobjects = { enable = true },
-	})
-else
-	vim.notify("nvim-treesitter not available; syntax highlighting may be reduced", vim.log.levels.WARN)
+vim.treesitter.language.register("latex", "tex")
+local parsers = { "lua", "julia", "markdown", "markdown_inline", "python", "latex", "bash", "vim" }
+for _, lang in ipairs(parsers) do
+	pcall(function()
+		vim.treesitter.language.add(lang)
+	end)
 end
 
 local ok_oil, oil = pcall(require, "oil")
