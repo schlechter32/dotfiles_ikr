@@ -1,49 +1,162 @@
-local pack = require("pack-manager")
-local cobra = require("install_on_cobra")
+local plugins = {
+	{ "talha-akram/noctis.nvim" },
+	{ "stevearc/oil.nvim" },
+	{ "chentoast/marks.nvim" },
+	{ "nvim-tree/nvim-web-devicons" },
+	{ "neovim/nvim-lspconfig" },
+	{ "nvim-treesitter/nvim-treesitter", branch = "master", build = ":TSUpdate" },
+	{ "nvim-treesitter/nvim-treesitter-context" },
+	{ "alexghergh/nvim-tmux-navigation" },
+	{ "saghen/blink.cmp", version = "v1.7.0" },
+	{ "nvim-mini/mini.ai" },
+	{ "nvim-mini/mini.comment" },
+	{ "nvim-treesitter/nvim-treesitter-textobjects", branch = "main" },
+	{ "williamboman/mason.nvim" },
+	{ "stevearc/conform.nvim" },
+	{ "declancm/maximize.nvim" },
+	{ "mfussenegger/nvim-dap" },
+	{ "rcarriga/nvim-dap-ui" },
+	{ "nvim-neotest/nvim-nio" },
+	{ "mfussenegger/nvim-dap-python" },
+	{ "folke/todo-comments.nvim" },
+	{ "MagicDuck/grug-far.nvim" },
+	{ "nvim-lua/plenary.nvim" },
+	{ "epwalsh/obsidian.nvim" },
+	{ "folke/flash.nvim" },
+	{ "j-hui/fidget.nvim" },
+	{ "iamcco/markdown-preview.nvim", build = "cd app && npm install", ft = { "markdown" } },
+	{ "kevinhwang91/nvim-bqf" },
+	{ "MeanderingProgrammer/render-markdown.nvim" },
+	{
+		"nvim-telescope/telescope.nvim",
+		dependencies = { "nvim-lua/plenary.nvim" },
+	},
+	{ "MunifTanjim/nui.nvim" },
+	{ "stevearc/dressing.nvim" },
+	{
+		"yetone/avante.nvim",
+		build = vim.fn.has("win32") ~= 0
+				and "powershell -ExecutionPolicy Bypass -File Build.ps1 -BuildFromSource false"
+			or "make",
+		version = false,
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+			"MunifTanjim/nui.nvim",
+			"nvim-telescope/telescope.nvim",
+			"MeanderingProgrammer/render-markdown.nvim",
+			"nvim-tree/nvim-web-devicons",
+		},
+		opts = {
+			provider = "opencode",
+			input = {
+				provider = "dressing",
+				provider_opts = {},
+			},
+			selector = {
+				provider = "telescope",
+			},
+			acp_providers = {
+				opencode = {
+					command = vim.fn.exepath("opencode"),
+					args = { "acp" },
+				},
+			},
+			behaviour = {
+				auto_suggestions = false,
+				auto_set_keymaps = true,
+				auto_apply_diff_after_generation = false,
+				minimize_diff = true,
+				auto_add_current_file = true,
+			},
+			providers = {
+				claude = {
+					-- endpoint = "https://api.anthropic.com",
+					auth_type = "max",
+					-- model = "claude-sonnet-4-20250514",
+					timeout = 30000,
+					extra_request_body = {
+						temperature = 0,
+						max_tokens = 4096,
+					},
+				},
+				openai = {
+					endpoint = "https://api.openai.com/v1",
+					model = "gpt-4o",
+					timeout = 30000,
+					extra_request_body = {
+						temperature = 0,
+						max_tokens = 4096,
+					},
+				},
+			},
+			mappings = {
+				ask = "<leader>aa",
+				edit = "<leader>ae",
+				refresh = "<leader>ar",
+				toggle = {
+					default = "<leader>at",
+					debug = "<leader>ad",
+					hint = "<leader>ah",
+					suggestion = "<leader>as",
+				},
+			},
+		},
+	},
+}
 
--- Plugin list
-pack.add(vim.list_extend({
-	{ src = "https://github.com/vague-theme/vague.nvim.git" },
-	{ src = "https://github.com/stevearc/oil.nvim" },
-	{ src = "https://github.com/chentoast/marks.nvim" },
-	{ src = "https://github.com/echasnovski/mini.pick" },
-	{ src = "https://github.com/nvim-mini/mini.comment" },
-	{ src = "https://github.com/nvim-tree/nvim-web-devicons" },
-	{ src = "https://github.com/neovim/nvim-lspconfig" },
-	{ src = "https://github.com/nvim-treesitter/nvim-treesitter" },
-	{ src = "nvim-treesitter/nvim-treesitter-context" },
-	{ src = "https://github.com/alexghergh/nvim-tmux-navigation" },
-	{ src = "https://github.com/saghen/blink.cmp", version = "v1.7.0" },
-	{ src = "https://github.com/nvim-mini/mini.ai" },
-	{ src = "https://github.com/nvim-treesitter/nvim-treesitter-textobjects", version = "main" },
-	{ src = "https://github.com/williamboman/mason.nvim" },
-	{ src = "https://github.com/stevearc/conform.nvim" },
-	{ src = "https://github.com/declancm/maximize.nvim" },
-	{ src = "https://github.com/mfussenegger/nvim-dap" },
-	{ src = "https://github.com/rcarriga/nvim-dap-ui" },
-	{ src = "https://github.com/nvim-neotest/nvim-nio.git" },
-	{ src = "https://github.com/mfussenegger/nvim-dap-python" },
-	{ src = "folke/todo-comments.nvim" },
-	{ src = "https://github.com/MagicDuck/grug-far.nvim" },
-	{ src = "https://github.com/nvim-lua/plenary.nvim" },
-	{ src = "https://github.com/epwalsh/obsidian.nvim" },
-	{ src = "https://github.com/folke/flash.nvim" },
-	{ src = "https://github.com/j-hui/fidget.nvim.git" },
-	{ src = "iamcco/markdown-preview.nvim" },
-	{ src = "https://github.com/kevinhwang91/nvim-bqf.git" },
-	{ src = "https://github.com/MeanderingProgrammer/render-markdown.nvim.git" },
-}, cobra))
+require("lazy").setup(plugins, {
+	defaults = {
+		lazy = false,
+	},
+	install = {
+		colorscheme = { "noctis_uva" },
+	},
+	lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json",
+	change_detection = {
+		notify = false,
+	},
+})
 
 require("todo-comments").setup({})
 require("fidget").setup({})
+require("dressing").setup({})
 
--- nvim-dap UI + python adapter
+require("telescope").setup({
+	defaults = {
+		layout_strategy = "vertical",
+		layout_config = {
+			prompt_position = "top",
+			width = 0.95,
+			height = 0.95,
+			preview_height = 0.55,
+		},
+		sorting_strategy = "ascending",
+	},
+	pickers = {
+		find_files = {
+			layout_strategy = "vertical",
+		},
+		live_grep = {
+			layout_strategy = "vertical",
+		},
+		grep_string = {
+			layout_strategy = "vertical",
+		},
+		buffers = {
+			layout_strategy = "vertical",
+			previewer = true,
+		},
+		help_tags = {
+			layout_strategy = "vertical",
+		},
+	},
+})
+
 require("dapui").setup()
 require("dap-python").setup("uv")
 local dap_ok, dap = pcall(require, "dap")
 local dapui_ok, dapui = pcall(require, "dapui")
 if dap_ok and dapui_ok then
-	dapui.setup()
 	dap.listeners.after.event_initialized["dapui_config"] = function()
 		dapui.open()
 	end
@@ -53,40 +166,10 @@ if dap_ok and dapui_ok then
 	dap.listeners.before.event_exited["dapui_config"] = function()
 		dapui.close()
 	end
-	-- python adapter (falls back to system python)
-	require("dap-python").setup("uv")
 	local dap_py_ok, dap_python = pcall(require, "dap-python")
 	if dap_py_ok then
 		print("dap_py_ok")
-		-- use python that has debugpy; swap to your venv path if needed
 		dap_python.setup("uv")
-		-- ensure configurations table exists
-		-- dap.configurations.python = dap.configurations.python or {}
-		-- local pycfg = dap.configurations.python
-		-- local function add(cfg)
-		-- 	table.insert(pycfg, cfg)
-		-- end
-		-- add({
-		-- 	type = "python",
-		-- 	request = "launch",
-		-- 	name = "Python: current file",
-		-- 	program = "${file}",
-		-- 	console = "integratedTerminal",
-		-- })
-		-- add({
-		-- 	type = "python",
-		-- 	request = "launch",
-		-- 	name = "Python: module",
-		-- 	module = "${fileBasenameNoExtension}",
-		-- 	cwd = "${workspaceFolder}",
-		-- })
-		-- add({
-		-- 	type = "python",
-		-- 	request = "attach",
-		-- 	name = "Python: attach 5678",
-		-- 	connect = { host = "127.0.0.1", port = 5678 },
-		-- 	justMyCode = false,
-		-- })
 	end
 end
 
@@ -112,9 +195,6 @@ vim.keymap.set({ "n", "x", "o" }, "S", flash.treesitter, { desc = "Flash Treesit
 vim.keymap.set("o", "r", flash.remote, { desc = "Remote Flash" })
 vim.keymap.set({ "o", "x" }, "R", flash.treesitter_search, { desc = "Treesitter Search" })
 vim.keymap.set("c", "<C-s>", flash.toggle, { desc = "Toggle Flash Search" })
-vim.api.nvim_set_hl(0, "FlashBackdrop", { fg = "#555555" })
-vim.api.nvim_set_hl(0, "FlashLabel", { fg = "#64eb34", bold = true })
-vim.api.nvim_set_hl(0, "FlashMatch", { fg = "#df8e1d", underline = true })
 
 require("maximize").setup()
 require("conform").setup({
@@ -143,7 +223,7 @@ vim.cmd([[ command! Format lua require("conform").format() ]])
 
 require("lazygit_float")
 require("obsidian_setup")
-require("local_sidekick")
+require("local_avante").setup()
 require("mason").setup()
 
 local cmp = require("blink.cmp")
@@ -157,28 +237,16 @@ cmp.setup({
 	},
 })
 
-vim.cmd("hi statusline guibg=NONE")
-require("vague").setup({
-	on_highlights = function(hl)
-		hl.Comment = { fg = "#ebaeae", bg = "NONE", italic = true }
-		hl.LineNr = { fg = "#ebaeae", bg = "NONE" }
-		hl.CurSearch = { fg = "#d20f39", bg = "NONE" }
-		hl.IncSearch = { fg = "#64eb34", bg = "NONE" }
-		hl.Search = { fg = "#df8e1d", bg = "NONE" }
-		hl.Visual = { bg = "#666666" }
-		hl.FlashBackdrop = { fg = "#9f9f9f" }
-		hl.FlashLabel = { fg = "#64eb34", bold = true }
-		hl.FlashMatch = { fg = "#df8e1d", underline = true }
-	end,
-})
-vim.cmd.colorscheme("vague")
+vim.cmd.colorscheme("noctis_uva")
+vim.api.nvim_set_hl(0, "StatusLine", { bg = "NONE" })
+vim.api.nvim_set_hl(0, "FlashBackdrop", { fg = "#6c6f93" })
+vim.api.nvim_set_hl(0, "FlashLabel", { fg = "#82aaff", bold = true })
+vim.api.nvim_set_hl(0, "FlashMatch", { fg = "#ecc48d", underline = true })
 
 require("mini.ai").setup()
-require("mini.pick").setup()
 require("nvim-tmux-navigation").setup({})
 
--- Treesitter for highlighting (markdown fenced code blocks included)
-local ok_ts, ts_configs = pcall(require, "nvim-treesitter")
+local ok_ts, ts_configs = pcall(require, "nvim-treesitter.configs")
 if ok_ts then
 	ts_configs.setup({
 		ensure_installed = { "lua", "julia", "markdown", "markdown_inline", "python", "latex", "bash", "vim" },
