@@ -1,0 +1,13 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+cat >&2 <<'EOF'
+`gpu-run` is disabled.
+
+Use the brokered `job` interface instead:
+  job run test --host cobra2
+  job run train --host cobra3 -- python train.py
+  job hosts
+EOF
+exit 1

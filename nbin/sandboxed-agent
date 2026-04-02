@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/run/current-system/sw/bin/bash
 set -euo pipefail
 
 # Usage: sandboxed-agent <agent> <worktree-path> [prompt...]
@@ -16,6 +16,19 @@ PROMPT="$*"
 TASK_ID="$(basename "$WORKTREE")"
 TMPDIR="/tmp/agent-${TASK_ID}"
 mkdir -p "$TMPDIR"
+DENY_BIN="$TMPDIR/deny-bin"
+mkdir -p "$DENY_BIN"
+
+cat >"$DENY_BIN/remote-exec-denied" <<'EOF'
+#!/usr/bin/env bash
+echo "Direct remote execution is disabled in this sandbox. Use the job tool instead: job run ..., job status, job tail, job cancel, job hosts." >&2
+exit 126
+EOF
+chmod +x "$DENY_BIN/remote-exec-denied"
+
+for denied_cmd in ssh scp sftp rsync gpu-run ish lab; do
+    ln -sf remote-exec-denied "$DENY_BIN/$denied_cmd"
+done
 
 # Ensure agent config dirs exist
 mkdir -p /home/agent/.claude /home/agent/.codex /home/agent/.opencode /home/agent/.cache /home/agent/.local/share/opencode
@@ -54,16 +67,19 @@ BWRAP_ARGS=(
     --bind /home/agent/.cache /home/agent/.cache
     --bind /home/agent/.local/share/opencode /home/agent/.local/share/opencode
 
-    # --- Worktree (read-write) — real NFS path so gpu-run works ---
+    # --- Worktree (read-write) ---
     --bind "$WORKTREE" "$WORKTREE"
 
     # --- Data directory (read-only) ---
     --ro-bind /bulk/netserv0/data /bulk/netserv0/data
 
+    # --- Hide SSH material from the agent ---
+    --tmpfs /home/agent/.ssh
+
     # --- Environment ---
     --setenv HOME /home/agent
     --setenv TMPDIR /tmp
-    --setenv PATH "/home/agent/bin:/home/agent/.npm-global/bin:/home/agent/.local/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin:/usr/bin:/bin"
+    --setenv PATH "/tmp/deny-bin:/home/agent/bin:/home/agent/.npm-global/bin:/home/agent/.local/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin:/usr/bin:/bin"
     --setenv ANTHROPIC_API_KEY "${ANTHROPIC_API_KEY:-}"
     --setenv OPENAI_API_KEY "${OPENAI_API_KEY:-}"
 
@@ -77,6 +93,12 @@ BWRAP_ARGS=(
 if [[ -e /sys ]]; then
     BWRAP_ARGS+=(--ro-bind /sys /sys)
 fi
+
+for deny_path in /usr/bin/ssh /usr/bin/scp /usr/bin/sftp /usr/bin/rsync /bin/ssh /bin/scp /bin/sftp /bin/rsync /home/agent/bin/gpu-run /home/agent/bin/ish /home/agent/bin/lab; do
+    if [[ -e "$deny_path" ]]; then
+        BWRAP_ARGS+=(--ro-bind "$DENY_BIN/remote-exec-denied" "$deny_path")
+    fi
+done
 
 for gpu_dev in /dev/nvidia0 /dev/nvidiactl /dev/nvidia-modeset /dev/nvidia-uvm /dev/nvidia-uvm-tools /dev/kfd; do
     if [[ -e "$gpu_dev" ]]; then
