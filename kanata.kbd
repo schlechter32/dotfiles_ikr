@@ -25,7 +25,7 @@
   ;; For example, your pinkies might be slower to release keys and index 
   ;; fingers faster. 
   tap-time 200 
-  hold-time 150 
+  hold-time 250 
 
   left-hand-keys ( 
     q w e r t 

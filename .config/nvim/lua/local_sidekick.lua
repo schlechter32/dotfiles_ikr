@@ -1,7 +1,13 @@
 local M = {}
 
 function M.setup()
+	local ok, _ = pcall(require, "sidekick")
+	if not ok then
+		return
+	end
+
 	require("sidekick").setup({
+		picker = "telescope",
 		cli = {
 			mux = {
 				backend = "tmux",
@@ -50,9 +56,6 @@ function M.setup()
 		require("sidekick.cli").prompt()
 	end, { desc = "Sidekick Prompt" })
 
-	-- 	map("n", "<leader>cc", function()
-	-- 		require("sidekick.cli").toggle({ name = "claude", focus = true })
-	-- 	end, { desc = "Toggle Claude" })
 	vim.api.nvim_create_user_command("CodexResume", function()
 		vim.fn.jobstart({ "tmux", "new-session", "-A", "-s", "codex", "codex", "resume", "--last" }, {
 			detach = true,

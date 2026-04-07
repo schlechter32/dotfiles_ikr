@@ -5,3 +5,7 @@ nbin/yq
 .config/btop/btop.log
 .ssh/config
 .config/tms/config.toml
+.config/nvim/.logs
+.logs
+.sisyphus
+.nvimlog

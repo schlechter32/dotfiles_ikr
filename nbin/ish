@@ -137,10 +137,12 @@ if ! have_cmd ssh; then
 fi
 
 if ! have_cmd sshpass; then
+    echo "ish: sshpass not found, falling back to plain ssh" >&2
     exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
 fi
 
 if ! have_cmd pass; then
+    echo "ish: pass not found, falling back to plain ssh" >&2
     exec ssh "${ssh_args[@]}" "$target_host" "${remote_args[@]}"
 fi
 
