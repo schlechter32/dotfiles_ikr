@@ -49,8 +49,28 @@ function tnl {
 }
 nsh-add() {
   local key_name="$1"
-  [[ -n "$key_name" ]] || return 1
-  pass show "ssh/$key_name" | ssh-add -
+  [[ -n "$key_name" ]] || { echo "Usage: nsh-add <key-name>" >&2; return 1; }
+
+  local key_path="${HOME}/.ssh/${key_name}"
+  [[ -f "$key_path" ]] || { echo "Key not found: $key_path" >&2; return 1; }
+
+  if command -v pass >/dev/null 2>&1; then
+    local passphrase
+    passphrase="$(pass show "ssh/$key_name" 2>/dev/null | head -n 1)" || {
+      echo "pass entry ssh/$key_name not found, falling back to TTY prompt" >&2
+      ssh-add "$key_path"
+      return
+    }
+    local askpass_helper
+    askpass_helper="$(mktemp)"
+    printf '#!/bin/sh\nprintf "%%s\\n" "%s"\n' "$passphrase" > "$askpass_helper"
+    chmod 700 "$askpass_helper"
+    DISPLAY=:0 SSH_ASKPASS="$askpass_helper" SSH_ASKPASS_REQUIRE=force ssh-add "$key_path" </dev/null
+    rm -f "$askpass_helper"
+  else
+    echo "pass not available, falling back to TTY prompt" >&2
+    ssh-add "$key_path"
+  fi
 }
 function tc {
   local GHOSTTY_DIR="$HOME/dotfiles/.config/ghostty"
