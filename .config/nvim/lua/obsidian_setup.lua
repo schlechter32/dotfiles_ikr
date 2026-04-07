@@ -26,7 +26,7 @@ require("obsidian").setup({
 		date_format = "%Y-%m-%d",
 		alias_format = "%B %-d, %Y",
 	},
-	completion = { nvim_cmp = false, min_chars = 2 },
+	completion = { blink = true, min_chars = 2 },
 	mappings = {
 		["gf"] = {
 			action = function()

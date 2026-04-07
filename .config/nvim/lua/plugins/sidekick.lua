@@ -8,15 +8,14 @@ local hosts = {
 	netserv1 = true,
 	netserv0 = true,
 }
+
 if not hosts[host] then
 	return {}
 end
 
 return {
-	{
-		"folke/sidekick.nvim",
-		config = function()
-			require("local_sidekick").setup()
-		end,
-	},
+	"folke/sidekick.nvim",
+	config = function()
+		require("local_sidekick").setup()
+	end,
 }
