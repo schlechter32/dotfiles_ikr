@@ -1,4 +1,5 @@
 export EDITOR=nvim
+export COLORTERM=truecolor
 GPG_TTY=$(tty)
 export GPG_TTY
 # PATHS
