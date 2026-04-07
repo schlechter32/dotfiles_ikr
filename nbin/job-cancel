@@ -1,0 +1,13 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd -P)"
+source "$SCRIPT_DIR/lib/job-common.sh"
+
+job_id="${1:-}"
+[[ -n "$job_id" ]] || job_id="$(job_get_latest)"
+[[ -n "$job_id" ]] || job_usage_error "no recent job for this worktree"
+
+job_load_metadata "$job_id"
+job_remote_invoke "$host" cancel "$job_id"

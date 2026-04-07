@@ -88,7 +88,7 @@ require("obsidian").setup({
 	end,
 	use_advanced_uri = false,
 	open_app_foreground = false,
-	picker = { name = "mini.pick" },
+	picker = { name = "telescope.nvim" },
 	sort_by = "modified",
 	sort_reversed = true,
 	open_notes_in = "current",

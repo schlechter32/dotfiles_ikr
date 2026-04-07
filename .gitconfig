@@ -59,3 +59,4 @@ alias = "!git config -l | grep alias | cut -c 7-"
 	sslVerify = "false"
 [safe]
 	directory = /lbulk/cobra0/ma1066root
+	directory = /bulk/netserv0/wimas/nclshrnk/source/*

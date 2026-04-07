@@ -1,0 +1,89 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd -P)"
+source "$SCRIPT_DIR/lib/job-common.sh"
+
+usage() {
+    cat <<'EOF'
+Usage: job-submit <test|lint|train|eval> [--host HOST] [--json] [-- extra args]
+
+Kinds:
+  test  -> uv run --no-sync pytest [args...]
+  lint  -> uv run --no-sync ruff check . [args...]
+  train -> requires explicit command after --
+  eval  -> requires explicit command after --
+EOF
+}
+
+kind="${1:-}"
+[[ -n "$kind" ]] || {
+    usage >&2
+    exit 1
+}
+shift
+
+host="$JOB_DEFAULT_HOST"
+json_output=0
+extra_args=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --host)
+            [[ $# -ge 2 ]] || job_usage_error "--host requires a value"
+            host="$2"
+            shift 2
+            ;;
+        --json)
+            json_output=1
+            shift
+            ;;
+        --)
+            shift
+            extra_args=("$@")
+            break
+            ;;
+        *)
+            extra_args+=("$1")
+            shift
+            ;;
+    esac
+done
+
+job_require_allowed_host "$host"
+
+command_words=()
+case "$kind" in
+    test)
+        command_words=(uv run --no-sync pytest)
+        command_words+=("${extra_args[@]}")
+        ;;
+    lint)
+        command_words=(uv run --no-sync ruff check .)
+        command_words+=("${extra_args[@]}")
+        ;;
+    train|eval)
+        [[ ${#extra_args[@]} -gt 0 ]] || job_usage_error "$kind requires an explicit command after --"
+        command_words=("${extra_args[@]}")
+        ;;
+    *)
+        job_usage_error "unsupported kind '$kind'"
+        ;;
+esac
+
+workdir="$(job_current_workdir)"
+command_string="$(job_quote_words "${command_words[@]}")"
+job_id="$(job_generate_id)"
+remote_state_dir="${JOB_BROKER_REMOTE_STATE_DIR:-${XDG_STATE_HOME:-$HOME/.cache/job-broker}/remote}"
+
+job_remote_invoke "$host" start "$job_id" "$kind" "$workdir" "$command_string" >/dev/null
+job_write_metadata "$job_id" "$host" "$kind" "$workdir" "$remote_state_dir" "$command_string"
+job_set_latest "$job_id" "$workdir"
+
+if [[ "$json_output" -eq 1 ]]; then
+    printf '{"job_id":"%s","state":"running","host":"%s","kind":"%s"}\n' \
+        "$(job_json_escape "$job_id")" "$(job_json_escape "$host")" "$(job_json_escape "$kind")"
+else
+    printf 'job_id=%s\nstate=running\nhost=%s\nkind=%s\n' "$job_id" "$host" "$kind"
+fi

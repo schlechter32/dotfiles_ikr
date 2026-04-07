@@ -9,12 +9,12 @@ local hosts = {
 	netserv0 = true,
 }
 if not hosts[host] then
-	return {} -- never nil
+	return {}
 end
 
 return {
 	{
-		src = "https://github.com/folke/sidekick.nvim",
+		"folke/sidekick.nvim",
 		config = function()
 			require("local_sidekick").setup()
 		end,

@@ -1,0 +1,76 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd -P)"
+source "$SCRIPT_DIR/lib/job-common.sh"
+
+json_output=0
+requested_hosts=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --json)
+            json_output=1
+            shift
+            ;;
+        *)
+            requested_hosts+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if [[ ${#requested_hosts[@]} -eq 0 ]]; then
+    requested_hosts=("${JOB_ALLOWED_HOSTS[@]}")
+fi
+
+for host in "${requested_hosts[@]}"; do
+    job_require_allowed_host "$host"
+done
+
+results=()
+for host in "${requested_hosts[@]}"; do
+    if output="$(job_remote_invoke "$host" host-status 2>/dev/null)"; then
+        results+=("$output")
+    else
+        results+=("{\"host\":\"$(job_json_escape "$host")\",\"reachable\":false}")
+    fi
+done
+
+if [[ "$json_output" -eq 1 ]]; then
+    printf '['
+    for i in "${!results[@]}"; do
+        [[ "$i" -eq 0 ]] || printf ','
+        printf '%s' "${results[$i]}"
+    done
+    printf ']\n'
+    exit 0
+fi
+
+printf '%-8s %-9s %-12s %-12s %-5s %s\n' HOST LOAD1 RAM_USED_GB RAM_AVAIL_GB GPUS GPU_SUMMARY
+for result in "${results[@]}"; do
+    if [[ "$result" == *'"reachable":false'* ]]; then
+        host_name="$(sed -n 's/.*"host":"\([^"]*\)".*/\1/p' <<<"$result")"
+        printf '%-8s %-9s %-12s %-12s %-5s %s\n' "$host_name" down - - 0 unavailable
+        continue
+    fi
+    python3 - <<'PY' "$result"
+import json, sys
+data = json.loads(sys.argv[1])
+host = data["host"]
+load1 = data.get("load1", 0)
+mem_total = data.get("mem_total_bytes", 0)
+mem_avail = data.get("mem_available_bytes", 0)
+mem_used = max(mem_total - mem_avail, 0)
+gpus = data.get("gpus", [])
+if gpus:
+    gpu_summary = "; ".join(
+        f"{gpu['name']} {gpu.get('utilization_gpu_pct', 0)}% {gpu.get('memory_used_mb', 0)}/{gpu.get('memory_total_mb', 0)}MB"
+        for gpu in gpus
+    )
+else:
+    gpu_summary = "none"
+print(f"{host:<8} {load1:<9} {mem_used / 1024**3:<12.1f} {mem_avail / 1024**3:<12.1f} {len(gpus):<5} {gpu_summary}")
+PY
+done

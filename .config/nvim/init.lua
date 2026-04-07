@@ -1,17 +1,15 @@
--- Bootstrap pack-manager if missing
-local pack_path = vim.fn.stdpath("data") .. "/site/pack/core/start/pack-manager.nvim"
-if not vim.uv.fs_stat(pack_path) then
-	vim.notify("Installing pack-manager.nvim...")
-	vim.fn.system({ "git", "clone", "--depth=1", "https://github.com/GlennMm/pack-manager.nvim.git", pack_path })
-	vim.cmd("packloadall!")
-	vim.notify("Pack-manager installed! Please restart Neovim.")
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.uv.fs_stat(lazypath) then
+	vim.fn.system({
+		"git",
+		"clone",
+		"--filter=blob:none",
+		"https://github.com/folke/lazy.nvim.git",
+		"--branch=stable",
+		lazypath,
+	})
 end
-
--- Load pack-manager and set it up early
-require("pack-manager").setup({
-	auto_install = true,
-	show_progress = true,
-})
+vim.opt.rtp:prepend(lazypath)
 
 -- Load modular config
 require("config.options")
