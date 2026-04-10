@@ -49,12 +49,8 @@ function tnl {
 }
 nsh-add() {
   local key_name="$1"
-  [[ -n "$key_name" ]] || { echo "Usage: nsh-add <key-name>" >&2; return 1; }
-
-  local key_path="${HOME}/.ssh/${key_name}"
-  [[ -f "$key_path" ]] || { echo "Key not found: $key_path" >&2; return 1; }
-
-  SSH_ASKPASS= ssh-add "$key_path"
+  [[ -n "$key_name" ]] || return 1
+  pass show "ssh/$key_name" | ssh-add -
 }
 function tc {
   local GHOSTTY_DIR="$HOME/dotfiles/.config/ghostty"
