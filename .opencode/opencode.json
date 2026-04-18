@@ -13,8 +13,8 @@
     "opencode-background-agents",
     "opencode-supermemory",
 //"@spoons-and-mirrors/subtask2@latest",
-"opencode-anthropic-oauth"
-
+"opencode-anthropic-oauth",
+"opencode-antigravity-auth"
   ],
   "permission": {
     "bash": {
