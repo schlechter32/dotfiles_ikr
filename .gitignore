@@ -9,3 +9,4 @@ nbin/yq
 .logs
 .sisyphus
 .nvimlog
+.omc
