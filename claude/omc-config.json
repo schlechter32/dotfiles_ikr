@@ -1,0 +1,14 @@
+{
+  "defaultExecutionMode": "ultrawork",
+  "configuredAt": "2026-04-20T08:17:27Z",
+  "team": {
+    "ops": {
+      "maxAgents": 3,
+      "defaultAgentType": "codex",
+      "monitorIntervalMs": 30000,
+      "shutdownTimeoutMs": 15000
+    }
+  },
+  "setupCompleted": "2026-04-20T10:21:38+02:00",
+  "setupVersion": "4.13.0"
+}
