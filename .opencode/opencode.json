@@ -15,7 +15,6 @@
 //"@spoons-and-mirrors/subtask2@latest",
 "opencode-anthropic-oauth",
 "opencode-antigravity-auth"
-
   ],
   "permission": {
     "bash": {
