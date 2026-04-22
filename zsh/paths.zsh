@@ -2,7 +2,7 @@
 export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
 export PATH="$HOME/.opencode/bin:$PATH"
 export PATH="$HOME/.local/share/fnm:$PATH"
-eval "$(fnm env --shell zsh)"
+if command -v fnm &>/dev/null; then eval "$(fnm env --shell zsh)"; fi
 export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/nbin:$PATH"
