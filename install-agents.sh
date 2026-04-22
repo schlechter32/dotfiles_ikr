@@ -7,6 +7,29 @@ have_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+# --- fnm + Node.js ---
+
+ensure_node() {
+  if have_cmd node && have_cmd npm; then
+    echo "Node.js already installed: $(node --version)"
+    return
+  fi
+
+  if have_cmd fnm; then
+    echo "fnm found, installing LTS Node.js..."
+    fnm install --lts
+    fnm default lts-latest
+  else
+    echo "Installing fnm..."
+    curl -fsSL https://fnm.vercel.app/install | bash
+    export PATH="$HOME/.local/share/fnm:$PATH"
+    eval "$(fnm env)"
+    echo "Installing LTS Node.js via fnm..."
+    fnm install --lts
+    fnm default lts-latest
+  fi
+}
+
 # --- Claude Code CLI ---
 
 install_claude_code() {
@@ -15,13 +38,8 @@ install_claude_code() {
     return
   fi
 
-  if have_cmd npm; then
-    echo "Installing Claude Code via npm..."
-    npm install -g @anthropic-ai/claude-code
-  else
-    echo "npm not found — install Node.js first, then re-run this script"
-    return 1
-  fi
+  echo "Installing Claude Code via npm..."
+  npm install -g @anthropic-ai/claude-code
 }
 
 # --- Claude config symlinks ---
@@ -57,6 +75,7 @@ setup_omc() {
 
 # --- Main ---
 
+ensure_node
 install_claude_code
 link_claude_config
 link_paseo_config

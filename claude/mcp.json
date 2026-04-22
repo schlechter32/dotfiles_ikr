@@ -1,9 +1,8 @@
 {
   "mcpServers": {
     "grep_app": {
-      "command": "node",
-      "args": ["/home/agent/source/grep_app_mcp/dist/server-stdio.js"],
-      "env": {}
+      "command": "uvx",
+      "args": ["grep-mcp"]
     }
   }
 }
