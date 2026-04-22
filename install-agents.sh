@@ -23,7 +23,7 @@ ensure_node() {
     echo "Installing fnm..."
     curl -fsSL https://fnm.vercel.app/install | bash
     export PATH="$HOME/.local/share/fnm:$PATH"
-    eval "$(fnm env)"
+    eval "$(fnm env --shell bash)"
     echo "Installing LTS Node.js via fnm..."
     fnm install --lts
     fnm default lts-latest

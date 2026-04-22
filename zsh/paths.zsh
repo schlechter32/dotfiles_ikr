@@ -1,6 +1,8 @@
 # export PATH="/u/home/wima/nclshrnk/.local/share/nvim/mason/packages/basedpyright/venv/lib/python3.13/site-packages/nodejs_wheel/bin:$PATH"
 export PATH="$HOME/.local/share/nvim/mason/bin:$PATH"
 export PATH="$HOME/.opencode/bin:$PATH"
+export PATH="$HOME/.local/share/fnm:$PATH"
+eval "$(fnm env --shell zsh)"
 export PATH="$HOME/.cargo/bin:$PATH"
 export PATH="$HOME/.local/bin:$PATH"
 export PATH="$HOME/nbin:$PATH"
