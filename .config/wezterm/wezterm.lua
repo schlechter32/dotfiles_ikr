@@ -54,6 +54,9 @@ config.scrollback_lines = 30000
 config.default_workspace = "home"
 config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.8 }
 
+-- Wezterm tab bar re-enabled for testing alongside zellij tabs.
+config.enable_tab_bar = true
+
 --=============================
 -- Keyboard
 --=============================
@@ -112,6 +115,12 @@ config.keys = {
 
 	-- Disable default ALT+Enter behavior
 	{ key = "Enter", mods = "ALT", action = wezterm.action.DisableDefaultAssignment },
+
+	-- SUPER+n / SUPER+w keep their wezterm defaults (new window / close).
+	-- SUPER+t → forward Alt+c so zellij (which binds Alt+c = NewTab) makes
+	-- a new zellij tab instead of a wezterm tab.
+	{ key = "t", mods = "SUPER",      action = act.SendKey({ key = "c", mods = "ALT" }) },
+	{ key = "t", mods = "CTRL|SHIFT", action = act.SendKey({ key = "c", mods = "ALT" }) },
 
 	-- Toggle dark/light
 	{ key = "Q", mods = "CTRL", action = act.EmitEvent("toggle-dark-mode") },

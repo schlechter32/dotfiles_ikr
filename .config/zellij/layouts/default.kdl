@@ -1,0 +1,95 @@
+layout {
+    default_tab_template {
+        children
+        pane size=1 borderless=true {
+            plugin location="file:~/.config/zellij/plugins/zellij-status.wasm" {
+                layout_mode "horizontal"
+
+                // -- Catppuccin Mocha palette --
+                color_rosewater "#f5e0dc"
+                color_flamingo  "#f2cdcd"
+                color_pink      "#f5c2e7"
+                color_mauve     "#cba6f7"
+                color_red       "#f38ba8"
+                color_maroon    "#eba0ac"
+                color_peach     "#fab387"
+                color_yellow    "#f9e2af"
+                color_green     "#a6e3a1"
+                color_teal      "#94e2d5"
+                color_sky       "#89dceb"
+                color_sapphire  "#74c7ec"
+                color_blue      "#89b4fa"
+                color_lavender  "#b4befe"
+                color_text      "#cdd6f4"
+                color_subtext1  "#bac2de"
+                color_subtext0  "#a6adc8"
+                color_overlay2  "#9399b2"
+                color_overlay1  "#7f849c"
+                color_overlay0  "#6c7086"
+                color_surface2  "#585b70"
+                color_surface1  "#45475a"
+                color_surface0  "#313244"
+                color_base      "#1e1e2e"
+                color_mantle    "#181825"
+                color_crust     "#11111b"
+
+                // --- Sections ---
+                // Left: mode (with cap) | tabs
+                format_1_left "{mode}#[fg=$surface1]|{tabs}"
+                cap_bg        "$mantle"
+
+                // Right: battery | ISO week | session | datetime
+                format_1_right "#[fg=$subtext0] {command_battery} #[fg=$overlay0]|{command_week} #[fg=$overlay0]|#[fg=$subtext0] {session} #[fg=$subtext0] {datetime} "
+
+                // Spacer fill colour between zones.
+                format_space "#[bg=$mantle]"
+
+                // Hide right zone first if terminal is too narrow.
+                format_precedence         "12"
+                format_hide_on_overlength "true"
+
+                // --- Tabs (numbered, "1:name") ---
+                tab_active        "#[fg=$base,bg=$green,bold,fill] {index}:{name} #[bg=default]"
+                tab_normal        "#[fg=$overlay0] {index}:{name} "
+                tab_separator     "#[fg=$surface1]|"
+                tab_max_name_length 18
+                tab_start_index     1
+
+                // --- Mode widget ---
+                mode_normal       "#[bg=$blue,fg=$base,bold,fill] NORMAL "
+                mode_locked       "#[bg=$red,fg=$base,bold,fill] LOCKED "
+                mode_resize       "#[bg=$teal,fg=$base,bold,fill] RESIZE "
+                mode_pane         "#[bg=$peach,fg=$base,bold,fill] PANE "
+                mode_tab          "#[bg=$green,fg=$base,bold,fill] TAB "
+                mode_scroll       "#[bg=$peach,fg=$base,bold,fill] SCROLL "
+                mode_search       "#[bg=$yellow,fg=$base,bold,fill] SEARCH "
+                mode_enter_search "#[bg=$yellow,fg=$base,bold,fill] ENT-SEARCH "
+                mode_session      "#[bg=$mauve,fg=$base,bold,fill] SESSION "
+                mode_rename_tab   "#[bg=$green,fg=$base,bold,fill] RENAMETAB "
+                mode_rename_pane  "#[bg=$peach,fg=$base,bold,fill] RENAMEPANE "
+                mode_tmux         "#[bg=$flamingo,fg=$base,bold,fill] TMUX "
+                mode_move         "#[bg=$teal,fg=$base,bold,fill] MOVE "
+                mode_prompt       "#[bg=$red,fg=$peach,bold,fill] PROMPT "
+
+                // --- Battery percent (uses nbin/battery-pct on PATH) ---
+                command_battery_command  "battery-pct"
+                command_battery_format   "#[fg=$green] {stdout}%"
+                command_battery_interval "30"
+
+                // --- ISO calendar week (e.g. W17) ---
+                command_week_command  "date +%V"
+                command_week_format   "#[fg=$blue,bold] W{stdout}"
+                command_week_interval "60"
+
+                // --- DateTime ---
+                datetime          "#[fg=$green,bold] {format} "
+                datetime_format   "%a %d.%m %H:%M"
+                datetime_timezone "Europe/Berlin"
+
+                // Notifications off for now.
+                notification_enabled       "false"
+                notification_show_if_empty "false"
+            }
+        }
+    }
+}

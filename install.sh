@@ -159,6 +159,34 @@ install_tpm() {
   fi
 }
 
+install_zjstatus() {
+  local plugin_dir="${HOME}/.config/zellij/plugins"
+  ensure_dir "$plugin_dir"
+  curl_fetch -o "${plugin_dir}/zjstatus.wasm" \
+    "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
+}
+
+grant_zjstatus_permissions() {
+  local cache_dir
+  case "$OS_NAME" in
+    Darwin) cache_dir="${HOME}/Library/Caches/org.Zellij-Contributors.Zellij" ;;
+    Linux)  cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/zellij" ;;
+    *)      return 0 ;;
+  esac
+  ensure_dir "$cache_dir"
+  local perm_file="${cache_dir}/permissions.kdl"
+  if ! grep -qF 'zjstatus.wasm' "$perm_file" 2>/dev/null; then
+    cat >> "$perm_file" <<'KDL'
+"file:~/.config/zellij/plugins/zjstatus.wasm" {
+    ReadApplicationState
+    ChangeApplicationState
+    RunCommands
+    MessageAndLaunchOtherPlugins
+}
+KDL
+  fi
+}
+
 install_uv() {
   curl_fetch https://astral.sh/uv/install.sh | sh
 }
@@ -208,5 +236,7 @@ else
 fi
 
 install_tpm
+install_zjstatus
+grant_zjstatus_permissions
 
 "${REPODIR}/linkconf.sh"
