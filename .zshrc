@@ -64,6 +64,7 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 source "$HOME/dotfiles/zsh/aliases.zsh"
 source "$HOME/dotfiles/zsh/functions.zsh"
 source "$HOME/dotfiles/zsh/ikrhosts.zsh"
+source "$HOME/dotfiles/zsh/zellij.zsh"
 
 if [[ $(uname) == "Darwin" ]]; then
     alias nsh="nsh-darwin-arm64" 

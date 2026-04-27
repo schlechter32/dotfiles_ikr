@@ -121,7 +121,7 @@ keybinds clear-defaults=true {
         }
 
         // Tab navigation (wired from wezterm leader shortcuts)
-        bind "Alt p" { GoToPreviousTab; }
+        // Alt p intentionally unbound so it passes through to tmux (floax)
         bind "Alt [" { GoToPreviousTab; }
         bind "Alt ]" { GoToNextTab; }
         bind "Alt c" { NewTab; }
@@ -143,9 +143,6 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" "scroll" {
         bind "Ctrl s" { SwitchToMode "scroll"; }
-    }
-    shared_except "locked" "scroll" "search" "tmux" {
-        bind "Ctrl b" { SwitchToMode "tmux"; }
     }
     shared_except "locked" "tab" {
         bind "Ctrl t" { SwitchToMode "tab"; }

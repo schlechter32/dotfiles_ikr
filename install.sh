@@ -139,12 +139,15 @@ install_neovim() {
   install_symlink "${dest_dir}/bin/nvim" "${APP_BIN}/nvim"
 }
 
+# Pinned to v0.43.1 -- v0.44.x has a client/server protocol regression that
+# causes "unknown message from client" infinite loops with our plugin layout.
+# Bump only after verifying the layout still renders.
+ZELLIJ_VERSION="v0.43.1"
+
 install_zellij() {
-  local version url dest_dir
-  version="$(github_latest_tag "zellij-org/zellij")"
-  [[ -n "$version" ]]
+  local url dest_dir
   dest_dir="${APP_ROOT}/zellij"
-  url="https://github.com/zellij-org/zellij/releases/download/${version}/zellij-x86_64-unknown-linux-musl.tar.gz"
+  url="https://github.com/zellij-org/zellij/releases/download/${ZELLIJ_VERSION}/zellij-x86_64-unknown-linux-musl.tar.gz"
 
   download_extract_tarball "$url" "$dest_dir"
   install_symlink "${dest_dir}/zellij" "${APP_BIN}/zellij"
@@ -159,32 +162,11 @@ install_tpm() {
   fi
 }
 
-install_zjstatus() {
+install_zellij_status() {
   local plugin_dir="${HOME}/.config/zellij/plugins"
   ensure_dir "$plugin_dir"
-  curl_fetch -o "${plugin_dir}/zjstatus.wasm" \
-    "https://github.com/dj95/zjstatus/releases/latest/download/zjstatus.wasm"
-}
-
-grant_zjstatus_permissions() {
-  local cache_dir
-  case "$OS_NAME" in
-    Darwin) cache_dir="${HOME}/Library/Caches/org.Zellij-Contributors.Zellij" ;;
-    Linux)  cache_dir="${XDG_CACHE_HOME:-${HOME}/.cache}/zellij" ;;
-    *)      return 0 ;;
-  esac
-  ensure_dir "$cache_dir"
-  local perm_file="${cache_dir}/permissions.kdl"
-  if ! grep -qF 'zjstatus.wasm' "$perm_file" 2>/dev/null; then
-    cat >> "$perm_file" <<'KDL'
-"file:~/.config/zellij/plugins/zjstatus.wasm" {
-    ReadApplicationState
-    ChangeApplicationState
-    RunCommands
-    MessageAndLaunchOtherPlugins
-}
-KDL
-  fi
+  curl_fetch -o "${plugin_dir}/zellij-status.wasm" \
+    "https://github.com/scottames/zellij-status/releases/latest/download/zellij-status.wasm"
 }
 
 install_uv() {
@@ -236,7 +218,6 @@ else
 fi
 
 install_tpm
-install_zjstatus
-grant_zjstatus_permissions
+install_zellij_status
 
 "${REPODIR}/linkconf.sh"

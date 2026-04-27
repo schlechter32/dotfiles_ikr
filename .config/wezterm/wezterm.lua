@@ -45,7 +45,7 @@ config.font = wezterm.font_with_fallback({
 --=============================
 -- Window
 --=============================
-config.window_background_opacity = 0.85
+config.window_background_opacity = 0.95
 config.macos_window_background_blur = 40
 config.window_padding = { left = 8, right = 3, top = 0, bottom = 1 }
 config.window_decorations = "RESIZE"
@@ -54,8 +54,8 @@ config.scrollback_lines = 30000
 config.default_workspace = "home"
 config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.8 }
 
--- Wezterm tab bar re-enabled for testing alongside zellij tabs.
-config.enable_tab_bar = true
+-- Tab bar disabled — zellij-status renders tabs inside zellij.
+config.enable_tab_bar = false
 
 --=============================
 -- Keyboard
@@ -119,7 +119,7 @@ config.keys = {
 	-- SUPER+n / SUPER+w keep their wezterm defaults (new window / close).
 	-- SUPER+t → forward Alt+c so zellij (which binds Alt+c = NewTab) makes
 	-- a new zellij tab instead of a wezterm tab.
-	{ key = "t", mods = "SUPER",      action = act.SendKey({ key = "c", mods = "ALT" }) },
+	{ key = "t", mods = "SUPER", action = act.SendKey({ key = "c", mods = "ALT" }) },
 	{ key = "t", mods = "CTRL|SHIFT", action = act.SendKey({ key = "c", mods = "ALT" }) },
 
 	-- Toggle dark/light

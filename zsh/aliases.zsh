@@ -66,8 +66,15 @@ alias v="nvim"
 alias vf='v "$(tv dotfiles-files)"'
 alias vim="nvim"
 alias z="zellij"
-alias za='zellij attach "$(tv zellij-sessions)"'
-alias zl='tv zellij-sessions'
+# tv zellij-sessions channel currently crashes television 0.15.4, so use fzf.
+za() {
+  local pick
+  pick=$(command zellij list-sessions -ns 2>/dev/null \
+    | fzf --height 40% --reverse --prompt='zellij> ' \
+    | awk '{print $1}')
+  [[ -n "$pick" ]] && command zellij attach "$pick"
+}
+zl() { command zellij list-sessions; }
 alias zo='tv projects --keybindings '\''enter="actions:zellij"'\'''
 
 alias codex-auto='codex -a full-auto'

@@ -6,6 +6,7 @@ REPODIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 mkdir -p ~/.config/nvim
 mkdir -p ~/.config/tmux
 mkdir -p ~/.config/zellij
+mkdir -p ~/.cache/zellij
 mkdir -p ~/.config/wezterm
 mkdir -p ~/.config/ghostty
 mkdir -p ~/.config/alacritty
@@ -26,6 +27,8 @@ ln -sf $REPODIR/.config/tmux/* ~/.config/tmux
 ln -sf $REPODIR/.ipython/ipython_config.py ~/.ipython/profile_default/ipython_config.py
 ln -sf $REPODIR/.config/ptpython/* ~/.config/ptpython/
 ln -sf $REPODIR/.config/zellij/* ~/.config/zellij
+# zellij plugin permissions cache (kept in dotfiles so it survives cache wipes)
+ln -sf $REPODIR/.config/zellij/permissions.kdl ~/.cache/zellij/permissions.kdl
 ln -sf $REPODIR/.config/television/* ~/.config/television/
 ln -sf $REPODIR/.config/wezterm/* ~/.config/wezterm
 ln -sf $REPODIR/.config/ghostty/* ~/.config/ghostty
