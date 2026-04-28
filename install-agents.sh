@@ -7,6 +7,17 @@ have_cmd() {
   command -v "$1" >/dev/null 2>&1
 }
 
+npm_install_if_missing() {
+  local bin="$1"
+  local pkg="$2"
+  if have_cmd "$bin"; then
+    echo "$bin already installed: $($bin --version 2>/dev/null || echo 'unknown version')"
+    return
+  fi
+  echo "Installing $pkg via npm..."
+  npm install -g "$pkg"
+}
+
 # --- fnm + Node.js ---
 
 ensure_node() {
@@ -15,49 +26,52 @@ ensure_node() {
     return
   fi
 
-  if have_cmd fnm; then
-    echo "fnm found, installing LTS Node.js..."
-    fnm install --lts
-    fnm default lts-latest
-  else
+  if ! have_cmd fnm; then
     echo "Installing fnm..."
     curl -fsSL https://fnm.vercel.app/install | bash
     export PATH="$HOME/.local/share/fnm:$PATH"
     eval "$(fnm env --shell bash)"
-    echo "Installing LTS Node.js via fnm..."
-    fnm install --lts
-    fnm default lts-latest
-  fi
-}
-
-# --- Claude Code CLI ---
-
-install_claude_code() {
-  if have_cmd claude; then
-    echo "Claude Code already installed: $(claude --version 2>/dev/null || echo 'unknown version')"
-    return
   fi
 
-  echo "Installing Claude Code via npm..."
-  npm install -g @anthropic-ai/claude-code
+  echo "Installing LTS Node.js via fnm..."
+  fnm install --lts
+  fnm default lts-latest
 }
 
-# --- Claude config symlinks ---
+# --- Agent CLIs ---
+
+install_claude_code() { npm_install_if_missing claude  @anthropic-ai/claude-code; }
+install_paseo()       { npm_install_if_missing paseo   @getpaseo/cli; }
+install_codex()       { npm_install_if_missing codex   @openai/codex; }
+install_pi()          { npm_install_if_missing pi      @mariozechner/pi-coding-agent; }
+install_opencode()    { npm_install_if_missing opencode opencode-ai; }
+
+# --- Config symlinks ---
 
 link_claude_config() {
   mkdir -p ~/.claude
-  ln -sf "$REPODIR/claude/settings.json" ~/.claude/settings.json
-  ln -sf "$REPODIR/claude/mcp.json" ~/.claude/.mcp.json
-  ln -sf "$REPODIR/claude/omc-config.json" ~/.claude/.omc-config.json
+  ln -sf "$REPODIR/.claude/settings.json"    ~/.claude/settings.json
+  ln -sf "$REPODIR/.claude/mcp.json"         ~/.claude/.mcp.json
+  ln -sf "$REPODIR/.claude/omc-config.json"  ~/.claude/.omc-config.json
   echo "Claude config linked"
 }
-
-# --- Paseo ---
 
 link_paseo_config() {
   mkdir -p ~/.paseo
   ln -sf "$REPODIR/paseo/config.json" ~/.paseo/config.json
   echo "Paseo config linked"
+}
+
+link_codex_config() {
+  mkdir -p ~/.codex
+  ln -sf "$REPODIR/codex/config.toml" ~/.codex/config.toml
+  echo "Codex config linked"
+}
+
+link_opencode_config() {
+  mkdir -p ~/.opencode
+  ln -sf "$REPODIR/.opencode/opencode.json" ~/.opencode/opencode.json
+  echo "OpenCode config linked"
 }
 
 # --- oh-my-claudecode ---
@@ -76,9 +90,18 @@ setup_omc() {
 # --- Main ---
 
 ensure_node
+
 install_claude_code
+install_paseo
+install_codex
+install_pi
+install_opencode
+
 link_claude_config
 link_paseo_config
+link_codex_config
+link_opencode_config
+
 setup_omc
 
 echo ""
