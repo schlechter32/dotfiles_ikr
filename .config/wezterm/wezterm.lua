@@ -54,8 +54,8 @@ config.scrollback_lines = 30000
 config.default_workspace = "home"
 config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.8 }
 
--- Tab bar disabled — zellij-status renders tabs inside zellij.
-config.enable_tab_bar = false
+-- Tab bar re-enabled — wezterm is the only multiplexer now.
+config.enable_tab_bar = true
 
 --=============================
 -- Keyboard
@@ -116,11 +116,51 @@ config.keys = {
 	-- Disable default ALT+Enter behavior
 	{ key = "Enter", mods = "ALT", action = wezterm.action.DisableDefaultAssignment },
 
-	-- SUPER+n / SUPER+w keep their wezterm defaults (new window / close).
-	-- SUPER+t → forward Alt+c so zellij (which binds Alt+c = NewTab) makes
-	-- a new zellij tab instead of a wezterm tab.
-	{ key = "t", mods = "SUPER", action = act.SendKey({ key = "c", mods = "ALT" }) },
-	{ key = "t", mods = "CTRL|SHIFT", action = act.SendKey({ key = "c", mods = "ALT" }) },
+	-- SUPER+t / CTRL+SHIFT+t use wezterm's default new-tab.
+
+	-- SUPER+s: prompt for `[user@]host`, open a new tab that SSH's there via
+	-- the `ish` wrapper and attaches to whatever tmux session is running.
+	-- Tab title is set to `<u>@<host>` so multiple tabs stay readable.
+	{
+		key = "s",
+		mods = "SUPER",
+		action = act.PromptInputLine({
+			description = "ssh+tmux: enter [user@]host",
+			action = wezterm.action_callback(function(window, _pane, line)
+				if not line or line == "" then return end
+				local user, host = line:match("^([^@]+)@(.+)$")
+				if not host then host = line end
+				local label = user and (user:sub(1, 1) .. "@" .. host) or host
+				local ish = os.getenv("HOME") .. "/localapps/bin/ish"
+				local tab, _, _ = window:mux_window():spawn_tab({
+					args = { ish, "-t", line, "tmux attach" },
+				})
+				if tab then tab:set_title(label) end
+			end),
+		}),
+	},
+
+	-- SUPER+Shift+S: same prompt, but just ssh -- no tmux attach. Useful
+	-- when the remote has no live tmux session yet, or you want a one-off
+	-- shell.
+	{
+		key = "S",
+		mods = "SUPER|SHIFT",
+		action = act.PromptInputLine({
+			description = "ssh: enter [user@]host",
+			action = wezterm.action_callback(function(window, _pane, line)
+				if not line or line == "" then return end
+				local user, host = line:match("^([^@]+)@(.+)$")
+				if not host then host = line end
+				local label = user and (user:sub(1, 1) .. "@" .. host) or host
+				local ish = os.getenv("HOME") .. "/localapps/bin/ish"
+				local tab, _, _ = window:mux_window():spawn_tab({
+					args = { ish, line },
+				})
+				if tab then tab:set_title(label) end
+			end),
+		}),
+	},
 
 	-- Toggle dark/light
 	{ key = "Q", mods = "CTRL", action = act.EmitEvent("toggle-dark-mode") },
@@ -131,6 +171,12 @@ for i = 1, 9 do
 	table.insert(config.keys, {
 		key = tostring(i),
 		mods = "LEADER",
+		action = act.ActivateTab(i - 1),
+	})
+	-- Alt+[1–9] → activate tab (no leader needed)
+	table.insert(config.keys, {
+		key = tostring(i),
+		mods = "ALT",
 		action = act.ActivateTab(i - 1),
 	})
 end
@@ -164,14 +210,24 @@ config.use_fancy_tab_bar = false
 config.status_update_interval = 1000
 config.colors = {
 	tab_bar = {
-		background = "#1a1b26",
-		active_tab = { bg_color = "#4c4f69", fg_color = "#ed8796" },
-		inactive_tab = { bg_color = "#1b1032", fg_color = "#808080" },
-		inactive_tab_hover = { bg_color = "#3b3052", fg_color = "#909090", italic = true },
-		new_tab = { bg_color = "#1b1032", fg_color = "#808080" },
-		new_tab_hover = { bg_color = "#3b3052", fg_color = "#909090", italic = true },
+		-- Tab bar uses Catppuccin Mocha for consistency with the right-status.
+		background         = "#181825", -- mantle
+		active_tab         = { bg_color = "#a6e3a1", fg_color = "#1e1e2e", intensity = "Bold" },                 -- green on base
+		inactive_tab       = { bg_color = "#181825", fg_color = "#6c7086" },                                      -- overlay0 on mantle
+		inactive_tab_hover = { bg_color = "#313244", fg_color = "#cdd6f4", italic = true },                       -- surface0 + text
+		new_tab            = { bg_color = "#181825", fg_color = "#6c7086" },
+		new_tab_hover      = { bg_color = "#313244", fg_color = "#cdd6f4", italic = true },
 	},
 }
+
+-- Format tabs as "<index>: <title>" (1-based) so tab labels are scannable.
+wezterm.on("format-tab-title", function(tab, _tabs, _panes, _config, _hover, _max_width)
+	local title = tab.tab_title
+	if title == nil or title == "" then
+		title = tab.active_pane.title or ""
+	end
+	return string.format(" %d: %s ", tab.tab_index + 1, title)
+end)
 
 wezterm.on("update-right-status", function(window)
 	local leader = window:leader_is_active() and "󰘳  " or ""
@@ -182,11 +238,12 @@ wezterm.on("update-right-status", function(window)
 		break
 	end
 
-	local time = wezterm.strftime("%H:%M")
+	local week = wezterm.strftime("W%V  ")
+	local time = wezterm.strftime("%a %d.%m %H:%M")
 
 	window:set_right_status(wezterm.format({
 		{ Foreground = { Color = "#a6d189" } },
-		{ Text = leader .. batt .. time },
+		{ Text = leader .. batt .. week .. time .. " " },
 	}))
 end)
 -- wezterm.on("update-right-status", function(window)
