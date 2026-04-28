@@ -45,6 +45,7 @@ install_paseo()       { npm_install_if_missing paseo   @getpaseo/cli; }
 install_codex()       { npm_install_if_missing codex   @openai/codex; }
 install_pi()          { npm_install_if_missing pi      @mariozechner/pi-coding-agent; }
 install_opencode()    { npm_install_if_missing opencode opencode-ai; }
+install_oh_my_opencode() { npm_install_if_missing oh-my-opencode oh-my-opencode; }
 
 # --- Config symlinks ---
 
@@ -96,6 +97,7 @@ install_paseo
 install_codex
 install_pi
 install_opencode
+install_oh_my_opencode
 
 link_claude_config
 link_paseo_config
