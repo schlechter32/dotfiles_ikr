@@ -188,6 +188,7 @@ install_shelltools() {
   install_cargo_binstall eza
   install_cargo_binstall ripgrep
   install_cargo_binstall starship
+  install_cargo_binstall television
   install_cargo_binstall yazi-fm
   install_cargo_binstall zoxide
 
