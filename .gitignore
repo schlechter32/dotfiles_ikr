@@ -9,3 +9,5 @@ nbin/yq
 .logs
 .sisyphus
 .nvimlog
+.omc
+.config/zellij/plugins/

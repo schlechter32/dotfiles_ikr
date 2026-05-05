@@ -5,7 +5,7 @@ end
 
 vim.keymap.set("n", "<leader>on", function()
 	local title = vim.fn.input("Note title: ")
-	vim.cmd("ObsidianNewFromTemplate " .. title .. " note")
+	vim.cmd("Obsidian new_from_template " .. title .. " note")
 end, { desc = "New Obsidian note from 'note' template" })
 
 require("obsidian").setup({

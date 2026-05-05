@@ -64,6 +64,7 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 source "$HOME/dotfiles/zsh/aliases.zsh"
 source "$HOME/dotfiles/zsh/functions.zsh"
 source "$HOME/dotfiles/zsh/ikrhosts.zsh"
+# source "$HOME/dotfiles/zsh/zellij.zsh"  # wezterm-only setup, no local zellij
 
 if [[ $(uname) == "Darwin" ]]; then
     alias nsh="nsh-darwin-arm64" 
@@ -111,4 +112,4 @@ export PATH=/home/nclshrnk/.opencode/bin:$PATH
 eval "$(tv init zsh)"
 
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
-export PATH="$HOME/.npm-global/bin:$PATH"
+export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"

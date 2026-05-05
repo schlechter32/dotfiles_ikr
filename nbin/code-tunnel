@@ -1,0 +1,35 @@
+#!/bin/bash
+# code-tunnel — Open an SSH tunnel for VSCode Remote SSH
+#
+# Usage: code-tunnel <hostname>
+#
+# This creates a local port forward (localhost:2222 → <hostname>:22)
+# so VSCode can connect via the "tunnel" SSH host.
+#
+# Steps:
+#   1. Run:   code-tunnel netserv0
+#   2. In VSCode: Remote-SSH → Connect to Host → tunnel
+#   3. Ctrl-C in terminal to close the tunnel when done.
+
+set -eu
+
+HOST="${1:-}"
+PORT="${2:-2222}"
+
+if [ -z "$HOST" ]; then
+    echo "Usage: code-tunnel <hostname> [local-port]"
+    echo ""
+    echo "Opens an SSH tunnel for VSCode Remote SSH."
+    echo "After running, connect VSCode to the 'tunnel' host."
+    echo ""
+    echo "Examples:"
+    echo "  code-tunnel netserv0       # tunnel on port 2222"
+    echo "  code-tunnel cobra3 2223    # tunnel on port 2223"
+    exit 1
+fi
+
+echo "Opening tunnel: localhost:$PORT → $HOST:22"
+echo "In VSCode, connect to Remote SSH host: tunnel"
+echo "Press Ctrl-C to close the tunnel."
+echo ""
+ssh -N -L "$PORT:localhost:22" "$HOST"

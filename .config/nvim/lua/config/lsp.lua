@@ -1,6 +1,4 @@
 local util = require("lspconfig.util")
-
--- Copilot: force telemetry off via settings
 vim.lsp.config("copilot", {
 	settings = {
 		telemetry = {

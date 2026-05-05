@@ -1,0 +1,13 @@
+personality = "pragmatic"
+
+[projects."/bulk/netserv0/wimas/nclshrnk/source/spectrailpy"]
+trust_level = "trusted"
+
+[projects."/bulk/netserv0/wimas/nclshrnk/source/spectrailpy/develop"]
+trust_level = "trusted"
+
+[projects."/home/agent/dotfiles_ikr"]
+trust_level = "trusted"
+
+[projects."/home/agent/.pi"]
+trust_level = "trusted"

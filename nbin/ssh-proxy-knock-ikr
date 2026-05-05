@@ -1,0 +1,13 @@
+#!/bin/bash
+# ssh-proxy-knock-ikr — ProxyCommand helper for IKR ingress
+# Knocks the IKR firewall then connects via netcat.
+# Used in ~/.ssh/config: ProxyCommand ssh-proxy-knock-ikr %h %p
+set -eu
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "$(uname)" = "Darwin" ]; then
+    "$SCRIPT_DIR/knock_ikr_mac" >/dev/null 2>&1 || true
+else
+    "$SCRIPT_DIR/knock_ikr_linux" >/dev/null 2>&1 || true
+fi
+sleep 0.3
+exec nc "$1" "$2"
