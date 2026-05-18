@@ -30,4 +30,39 @@ link_agents() {
   echo "Claude agent architecture linked (CLAUDE.md, settings.json, agents/, skills/autoresearch)"
 }
 
+# User-scope MCP servers (apply to every project; reproducible across machines).
+# ~/.claude.json can't be symlinked, so we re-register idempotently here instead.
+register_mcps() {
+  if ! command -v claude >/dev/null 2>&1; then
+    echo "claude CLI not found — skipping MCP registration" >&2
+    return
+  fi
+
+  # Secrets (e.g. EXA_API_KEY) come from an untracked, machine-local file.
+  local secrets="${AGENT_SECRETS_FILE:-$HOME/.config/agent-secrets.env}"
+  if [ -f "$secrets" ]; then
+    set -a; . "$secrets"; set +a
+  else
+    echo "WARN: no secrets file at $secrets — exa MCP will be skipped" >&2
+  fi
+
+  # Idempotent: drop any existing user-scope entry, then (re)add.
+  mcp_add() {
+    local name="$1"; shift
+    claude mcp remove "$name" --scope user >/dev/null 2>&1 || true
+    claude mcp add "$name" --scope user "$@"
+  }
+
+  mcp_add context7 -- npx -y @upstash/context7-mcp
+  mcp_add filesystem -- npx -y @modelcontextprotocol/server-filesystem "$HOME" /bulk/netserv0/wimas
+  if [ -n "${EXA_API_KEY:-}" ]; then
+    mcp_add exa --env "EXA_API_KEY=$EXA_API_KEY" -- npx -y exa-mcp-server
+  else
+    echo "WARN: EXA_API_KEY unset — skipping exa MCP" >&2
+  fi
+
+  echo "User-scope MCPs registered (context7, filesystem$([ -n "${EXA_API_KEY:-}" ] && echo ', exa'))"
+}
+
 link_agents
+register_mcps
