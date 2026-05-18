@@ -46,22 +46,55 @@ register_mcps() {
     echo "WARN: no secrets file at $secrets — exa MCP will be skipped" >&2
   fi
 
-  # Idempotent: drop any existing user-scope entry, then (re)add.
+  # MCP servers are spawned by claude/paseo, whose PATH may NOT include
+  # fnm/nvm-managed node (only interactive shells get it -> spawn ENOENT).
+  # Resolve the REAL node binary (process.execPath, not the fnm multishell
+  # shim) and pin absolute npx + an explicit PATH so the `env node` shebang
+  # inside npx also resolves regardless of the launcher's environment.
+  # When invoked outside an fnm-activated shell (installer subprocess, GUI,
+  # daemon), node may not be on PATH even though fnm is installed. Activate
+  # fnm ourselves so process.execPath below resolves the real install dir.
+  if ! command -v node >/dev/null 2>&1 && command -v fnm >/dev/null 2>&1; then
+    eval "$(fnm env 2>/dev/null)" 2>/dev/null || true
+    fnm use default >/dev/null 2>&1 || fnm use lts-latest >/dev/null 2>&1 || true
+  fi
+  if ! command -v node >/dev/null 2>&1; then
+    echo "ERROR: node not found (and fnm activation failed) — install Node, then re-run" >&2
+    return
+  fi
+  local node_real node_bin npx mcp_path
+  node_real="$(node -e 'process.stdout.write(process.execPath)')"
+  node_bin="$(dirname "$node_real")"
+  npx="$node_bin/npx"
+  if [ ! -x "$npx" ]; then
+    echo "ERROR: npx not found next to node at $node_bin — re-run after a clean Node install" >&2
+    return
+  fi
+  mcp_path="$node_bin:/usr/local/bin:/usr/bin:/bin"
+
+  # Idempotent: drop any existing user-scope entry, then (re)add with abs paths.
   mcp_add() {
     local name="$1"; shift
     claude mcp remove "$name" --scope user >/dev/null 2>&1 || true
-    claude mcp add "$name" --scope user "$@"
+    claude mcp add "$name" --scope user --env "PATH=$mcp_path" "$@"
   }
 
-  mcp_add context7 -- npx -y @upstash/context7-mcp
-  mcp_add filesystem -- npx -y @modelcontextprotocol/server-filesystem "$HOME" /bulk/netserv0/wimas
+  # filesystem roots: $HOME always; add /bulk/netserv0/wimas only where it
+  # exists (the server refuses to start if any root is missing).
+  local fs_roots=( "$HOME" )
+  if [ -d /bulk/netserv0/wimas ]; then
+    fs_roots+=( /bulk/netserv0/wimas )
+  fi
+
+  mcp_add context7 -- "$npx" -y @upstash/context7-mcp
+  mcp_add filesystem -- "$npx" -y @modelcontextprotocol/server-filesystem "${fs_roots[@]}"
   if [ -n "${EXA_API_KEY:-}" ]; then
-    mcp_add exa --env "EXA_API_KEY=$EXA_API_KEY" -- npx -y exa-mcp-server
+    mcp_add exa --env "EXA_API_KEY=$EXA_API_KEY" -- "$npx" -y exa-mcp-server
   else
     echo "WARN: EXA_API_KEY unset — skipping exa MCP" >&2
   fi
 
-  echo "User-scope MCPs registered (context7, filesystem$([ -n "${EXA_API_KEY:-}" ] && echo ', exa'))"
+  echo "User-scope MCPs registered via $node_bin (context7, filesystem$([ -n "${EXA_API_KEY:-}" ] && echo ', exa'))"
 }
 
 link_agents
