@@ -58,6 +58,45 @@ config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.8 }
 config.enable_tab_bar = true
 
 --=============================
+-- SSH host picker
+--=============================
+local ssh_favorites = {
+	"agent@netserv1",
+}
+
+local function ssh_choices()
+	local choices = {}
+	local seen = {}
+
+	for _, entry in ipairs(ssh_favorites) do
+		seen[entry] = true
+		table.insert(choices, { label = entry, id = entry })
+	end
+
+	local home = os.getenv("HOME") or ""
+	local f = io.open(home .. "/.ssh/config", "r")
+	if f then
+		for line in f:lines() do
+			local hosts = line:match("^Host%s+(.+)$")
+			if hosts then
+				for host in hosts:gmatch("%S+") do
+					if not host:match("[*?]")
+						and host ~= "github.com"
+						and not host:match("%.devpod$")
+						and not seen[host] then
+						seen[host] = true
+						table.insert(choices, { label = host, id = host })
+					end
+				end
+			end
+		end
+		f:close()
+	end
+
+	return choices
+end
+
+--=============================
 -- Keyboard
 --=============================
 config.send_composed_key_when_right_alt_is_pressed = true
@@ -91,7 +130,11 @@ config.keys = {
 		key = "e",
 		mods = "LEADER",
 		action = act.PromptInputLine({
-			description = "Enter new tab name",
+			description = wezterm.format({
+				{ Attribute = { Intensity = "Bold" } },
+				{ Foreground = { Color = "#a6e3a1" } },
+				{ Text = " Rename tab: " },
+			}),
 			action = wezterm.action_callback(function(window, _, line)
 				if line then
 					window:active_tab():set_title(line)
@@ -104,7 +147,11 @@ config.keys = {
 		key = "E",
 		mods = "CTRL|SHIFT",
 		action = act.PromptInputLine({
-			description = "Enter new tab name",
+			description = wezterm.format({
+				{ Attribute = { Intensity = "Bold" } },
+				{ Foreground = { Color = "#a6e3a1" } },
+				{ Text = " Rename tab: " },
+			}),
 			action = wezterm.action_callback(function(window, _, line)
 				if line then
 					window:active_tab():set_title(line)
@@ -116,46 +163,63 @@ config.keys = {
 	-- Disable default ALT+Enter behavior
 	{ key = "Enter", mods = "ALT", action = wezterm.action.DisableDefaultAssignment },
 
+	-- Alt+h/l (and Alt+j/k as a synonym) cycle tabs without the leader.
+	{ key = "h", mods = "ALT", action = act.ActivateTabRelative(-1) },
+	{ key = "l", mods = "ALT", action = act.ActivateTabRelative(1) },
+	{ key = "k", mods = "ALT", action = act.ActivateTabRelative(-1) },
+	{ key = "j", mods = "ALT", action = act.ActivateTabRelative(1) },
+
 	-- SUPER+t / CTRL+SHIFT+t use wezterm's default new-tab.
 
-	-- SUPER+s: prompt for `[user@]host`, open a new tab that SSH's there via
-	-- the `ish` wrapper and attaches to whatever tmux session is running.
-	-- Tab title is set to `<u>@<host>` so multiple tabs stay readable.
+	-- SUPER+s: fuzzy-pick a host from ~/.ssh/config, SSH + tmux attach.
 	{
 		key = "s",
 		mods = "SUPER",
-		action = act.PromptInputLine({
-			description = "ssh+tmux: enter [user@]host",
-			action = wezterm.action_callback(function(window, _pane, line)
-				if not line or line == "" then return end
-				local user, host = line:match("^([^@]+)@(.+)$")
-				if not host then host = line end
+		action = act.InputSelector({
+			title = " SSH + tmux attach",
+			choices = ssh_choices(),
+			fuzzy = true,
+			fuzzy_description = "Pick host: ",
+			action = wezterm.action_callback(function(window, _pane, id)
+				if not id then return end
+				local user, host = id:match("^([^@]+)@(.+)$")
+				if not host then host = id end
 				local label = user and (user:sub(1, 1) .. "@" .. host) or host
-				local ish = os.getenv("HOME") .. "/localapps/bin/ish"
+				local home = os.getenv("HOME")
+				local ish = home .. "/localapps/bin/ish"
+				local path = home .. "/.local/bin:" .. home .. "/localapps/bin:"
+					.. (os.getenv("PATH") or "/usr/local/bin:/usr/bin:/bin")
 				local tab, _, _ = window:mux_window():spawn_tab({
-					args = { ish, "-t", line, "tmux attach" },
+					args = { ish, "-t", id, "tmux new-session -A" },
+					set_environment_variables = { PATH = path },
 				})
 				if tab then tab:set_title(label) end
 			end),
 		}),
 	},
 
-	-- SUPER+Shift+S: same prompt, but just ssh -- no tmux attach. Useful
-	-- when the remote has no live tmux session yet, or you want a one-off
-	-- shell.
+	-- SUPER+Shift+S: free-text ssh, no tmux. For arbitrary hosts not in the config.
 	{
 		key = "S",
 		mods = "SUPER|SHIFT",
 		action = act.PromptInputLine({
-			description = "ssh: enter [user@]host",
+			description = wezterm.format({
+				{ Attribute = { Intensity = "Bold" } },
+				{ Foreground = { Color = "#a6e3a1" } },
+				{ Text = " SSH: [user@]host " },
+			}),
 			action = wezterm.action_callback(function(window, _pane, line)
 				if not line or line == "" then return end
 				local user, host = line:match("^([^@]+)@(.+)$")
 				if not host then host = line end
 				local label = user and (user:sub(1, 1) .. "@" .. host) or host
-				local ish = os.getenv("HOME") .. "/localapps/bin/ish"
+				local home = os.getenv("HOME")
+				local ish = home .. "/localapps/bin/ish"
+				local path = home .. "/.local/bin:" .. home .. "/localapps/bin:"
+					.. (os.getenv("PATH") or "/usr/local/bin:/usr/bin:/bin")
 				local tab, _, _ = window:mux_window():spawn_tab({
 					args = { ish, line },
+					set_environment_variables = { PATH = path },
 				})
 				if tab then tab:set_title(label) end
 			end),

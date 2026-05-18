@@ -24,5 +24,18 @@
     "voiceMode": {
       "enabled": true
     }
+  },
+  "agents": {
+    "providers": {
+      "claude": {
+        "additionalModels": [
+          {
+            "id": "claude-sonnet-4-6",
+            "label": "Sonnet 4.6",
+            "isDefault": true
+          }
+        ]
+      }
+    }
   }
 }

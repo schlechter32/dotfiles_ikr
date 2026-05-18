@@ -15,6 +15,7 @@ mkdir -p ~/.config/television
 mkdir -p ~/.config/ptpython/
 mkdir -p ~/.ipython/profile_default/
 mkdir -p ~/.local/share/fonts/
+mkdir -p ~/.local/share/applications
 mkdir -p ~/.gnupg
 mkdir -p ~/.julia/config
 mkdir -p ~/.julia/environments
@@ -41,6 +42,7 @@ ln -sf $REPODIR/.zshrc $HOME
 ln -sf $REPODIR/.latexmkrc $HOME
 ln -sf $REPODIR/nbin/ $HOME
 ln -sf $REPODIR/.local/share/fonts/* ~/.local/share/fonts
+ln -sf $REPODIR/.local/share/applications/* ~/.local/share/applications
 ln -sf $REPODIR/.gitconfig $HOME
 ln -sf $REPODIR/.gnupg/gpg-agent.conf $HOME/.gnupg
 mkdir -p ~/.ssh
