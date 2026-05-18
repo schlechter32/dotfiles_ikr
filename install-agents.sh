@@ -53,7 +53,6 @@ link_claude_config() {
   mkdir -p ~/.claude
   ln -sf "$REPODIR/.claude/settings.json"    ~/.claude/settings.json
   ln -sf "$REPODIR/.claude/mcp.json"         ~/.claude/.mcp.json
-  ln -sf "$REPODIR/.claude/omc-config.json"  ~/.claude/.omc-config.json
   echo "Claude config linked"
 }
 
@@ -75,19 +74,6 @@ link_opencode_config() {
   echo "OpenCode config linked"
 }
 
-# --- oh-my-claudecode ---
-
-setup_omc() {
-  if [[ -d ~/.claude/plugins/cache/omc ]]; then
-    echo "OMC plugin already cached — will update on next claude session"
-    return
-  fi
-
-  echo ""
-  echo "OMC plugin will auto-install on first 'claude' session."
-  echo "Run 'setup omc' inside Claude Code to complete the setup."
-}
-
 # --- Main ---
 
 ensure_node
@@ -104,10 +90,11 @@ link_paseo_config
 link_codex_config
 link_opencode_config
 
-setup_omc
+# Portable agent architecture symlinks (CLAUDE.md, settings.json, agents/, skills/autoresearch)
+"$REPODIR/link-agents.sh"
 
 echo ""
 echo "Agent setup complete."
 echo "Next steps:"
-echo "  1. Run 'claude' to start a session (OMC plugin installs automatically)"
-echo "  2. Say 'setup omc' to generate HUD and CLAUDE.md"
+echo "  1. Run 'claude' (Sonnet-first; scout/deep-reasoner subagents auto-available)"
+echo "  2. autoresearch skill is active standalone — no plugin needed"
