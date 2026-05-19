@@ -3,5 +3,9 @@
     "defaultMode": "auto"
   },
   "skipDangerousModePermissionPrompt": true,
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/nbin/claude-statusline.sh"
+  }
 }

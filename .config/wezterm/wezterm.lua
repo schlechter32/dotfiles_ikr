@@ -293,7 +293,83 @@ wezterm.on("format-tab-title", function(tab, _tabs, _panes, _config, _hover, _ma
 	return string.format(" %d: %s ", tab.tab_index + 1, title)
 end)
 
+-- Claude session limits. Two caches feed this, both stamped with `ts` (unix s):
+--   ~/.claude/rate-cache.json  — written by the Claude Code statusLine from API
+--       response headers; exact, but only fresh during active Claude sessions.
+--   ~/.claude/usage-poll.json  — written by nbin/claude-usage-poll.py from the
+--       OAuth usage endpoint (~hourly, self-throttled); covers idle periods.
+-- Whichever was written most recently wins.
+local function read_usage_cache(path)
+	local f = io.open(path, "r")
+	if not f then return nil end
+	local raw = f:read("*a")
+	f:close()
+	local ok, d = pcall(wezterm.json_parse, raw)
+	if not ok or type(d) ~= "table" then return nil end
+	-- Usable only if it carries real percentages (a poll cache that has only
+	-- ever seen 429s has none).
+	if d.r5 == nil or d.r7 == nil then return nil end
+	return d
+end
+
+local function claude_usage()
+	local home = os.getenv("HOME") or ""
+	local a = read_usage_cache(home .. "/.claude/rate-cache.json")
+	local b = read_usage_cache(home .. "/.claude/usage-poll.json")
+	local d
+	if a and b then
+		d = (tonumber(b.ts) or 0) > (tonumber(a.ts) or 0) and b or a
+	else
+		d = a or b
+	end
+	if not d then return nil end
+
+	local now = os.time()
+	-- If the window's reset time has already passed since the cache was
+	-- written, the limit has rolled over → report 0 instead of a stale value.
+	-- resets_at is unix-epoch seconds (string or number); non-numeric → skip.
+	local function pct(value, resets_at)
+		local v = tonumber(value) or 0
+		local r = tonumber(resets_at)
+		if r and now >= r then return 0 end
+		return v
+	end
+
+	return pct(d.r5, d.r5_resets_at), pct(d.r7, d.r7_resets_at)
+end
+
+-- Opportunistically refresh the poll cache while WezTerm is open. The poller
+-- self-throttles (~1 call/hour, honours server retry-after); we additionally
+-- gate here so we never spawn a process more than once a minute, and only when
+-- the poller would actually do something.
+local last_poll_spawn = 0
+local function maybe_spawn_poller()
+	local t = os.time()
+	if t - last_poll_spawn < 60 then return end
+	local home = os.getenv("HOME") or ""
+	local f = io.open(home .. "/.claude/usage-poll.json", "r")
+	if f then
+		local ok, d = pcall(wezterm.json_parse, f:read("*a"))
+		f:close()
+		if ok and type(d) == "table" then
+			local na = tonumber(d.next_allowed_at)
+			if na and t < na then return end -- not due yet
+		end
+	end
+	last_poll_spawn = t
+	wezterm.background_child_process({ "python3", home .. "/nbin/claude-usage-poll.py" })
+end
+
+-- Threshold colors (Catppuccin Mocha), matching the statusline script.
+local function usage_color(p)
+	if p >= 80 then return "#f38ba8" end -- red
+	if p >= 50 then return "#f9e2af" end -- yellow
+	return "#a6e3a1" -- green
+end
+
 wezterm.on("update-right-status", function(window)
+	maybe_spawn_poller()
+
 	local leader = window:leader_is_active() and "󰘳  " or ""
 
 	local batt = ""
@@ -305,10 +381,25 @@ wezterm.on("update-right-status", function(window)
 	local week = wezterm.strftime("W%V  ")
 	local time = wezterm.strftime("%a %d.%m %H:%M")
 
-	window:set_right_status(wezterm.format({
-		{ Foreground = { Color = "#a6d189" } },
-		{ Text = leader .. batt .. week .. time .. " " },
-	}))
+	local segments = {}
+	local r5, r7 = claude_usage()
+	if r5 then
+		table.insert(segments, { Foreground = { Color = "#a6d189" } })
+		table.insert(segments, { Text = "󰚩 " })
+		table.insert(segments, { Foreground = { Color = usage_color(r5) } })
+		table.insert(segments, { Text = string.format("5h %d%%", r5) })
+		table.insert(segments, { Foreground = { Color = "#6c7086" } })
+		table.insert(segments, { Text = " · " })
+		table.insert(segments, { Foreground = { Color = usage_color(r7) } })
+		table.insert(segments, { Text = string.format("7d %d%%", r7) })
+		table.insert(segments, { Foreground = { Color = "#6c7086" } })
+		table.insert(segments, { Text = "  │  " })
+	end
+
+	table.insert(segments, { Foreground = { Color = "#a6d189" } })
+	table.insert(segments, { Text = leader .. batt .. week .. time .. " " })
+
+	window:set_right_status(wezterm.format(segments))
 end)
 -- wezterm.on("update-right-status", function(window)
 -- 	local text = window:leader_is_active() and "󰘳  " or ""
