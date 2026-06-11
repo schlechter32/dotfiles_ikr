@@ -111,4 +111,7 @@ export PATH=/home/nclshrnk/.opencode/bin:$PATH
 if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
 export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
 
+# Silence zoxide's "configuration issue" doctor warning. It runs on every `cd`
+# and spams non-interactive/agent shells where the chpwd hook gets dropped.
+export _ZO_DOCTOR=0
 eval "$(zoxide init zsh --cmd cd)"
