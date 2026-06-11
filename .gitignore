@@ -11,3 +11,4 @@ nbin/yq
 .nvimlog
 .omc
 .config/zellij/plugins/
+/nbin/__pycache__
