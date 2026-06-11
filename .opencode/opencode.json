@@ -4,16 +4,16 @@
 // run shells with pseudo ty
     "opencode-pty",
 // make tasks not hang
-    "opencode-shell-strategy",
+//    "opencode-shell-strategy",
 // automatically compact
     "opencode-dynamic-context-pruning",
 
     //"opencode-worktree",
     //"opencode-notificator",
-    "opencode-background-agents",
+ //   "opencode-background-agents",
     "opencode-supermemory",
 //"@spoons-and-mirrors/subtask2@latest",
-"opencode-anthropic-oauth",
+//"opencode-anthropic-oauth",
 "opencode-antigravity-auth"
   ],
   "permission": {
