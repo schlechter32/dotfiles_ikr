@@ -373,7 +373,10 @@ def resume_with_paseo(marker: dict[str, Any]) -> subprocess.CompletedProcess[str
     agent_id = marker.get("paseo_agent_id") or os.environ.get("PASEO_AGENT_ID") or infer_paseo_agent_id(marker)
     if not paseo or not agent_id:
         return None
-    return run_quiet([paseo, "send", str(agent_id), build_resume_prompt(marker)], timeout=120)
+    # --no-wait: success means "prompt delivered to the daemon", not "agent
+    # finished". Waiting here would time out on long tasks and the watchdog
+    # sweep would then re-send the prompt every minute.
+    return run_quiet([paseo, "send", "--no-wait", str(agent_id), build_resume_prompt(marker)], timeout=120)
 
 
 def resume_with_claude(marker: dict[str, Any]) -> subprocess.CompletedProcess[str] | None:
