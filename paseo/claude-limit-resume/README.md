@@ -94,13 +94,25 @@ Manual Paseo-agent scan:
 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py scan --paseo-agents
 ```
 
+Manual send test for a pending marker:
+
+```bash
+~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py send-now <marker-file-or-prefix>
+```
+
+Example:
+
+```bash
+~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py send-now e4628caa
+```
+
 ## Tuning
 
 Environment variables:
 
 - `CC_PASEO_LIMIT_STATE_DIR` — override state directory.
 - `CC_PASEO_LIMIT_DEFAULT_DELAY_SECONDS` — default retry delay if no reset time is present. Default: `3600`.
-- `CC_PASEO_LIMIT_SAFETY_BUFFER_SECONDS` — extra delay after parsed reset time. Default: `120`.
+- `CC_PASEO_LIMIT_SAFETY_BUFFER_SECONDS` — extra delay after parsed reset time. Default: `180`.
 - `CC_PASEO_LIMIT_MAX_BACKOFF_SECONDS` — maximum fallback backoff. Default: `21600`.
 - `CC_PASEO_LIMIT_SCHEDULER=none` — testing only; write markers without creating OS timers.
 - `CC_PASEO_LIMIT_WINDOW_HOURS` — length of the provider limit window; the scanner

@@ -13,7 +13,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py hook"
+            "command": "CC_PASEO_LIMIT_SCHEDULER=none python3 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py hook"
           }
         ]
       }

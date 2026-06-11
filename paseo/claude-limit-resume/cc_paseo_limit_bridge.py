@@ -31,7 +31,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 APP_NAME = "cc-paseo-limit-resume"
 DEFAULT_DELAY_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_DEFAULT_DELAY_SECONDS", "3600"))
 LIMIT_WINDOW_HOURS = float(os.environ.get("CC_PASEO_LIMIT_WINDOW_HOURS", "5"))
-SAFETY_BUFFER_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_SAFETY_BUFFER_SECONDS", "120"))
+SAFETY_BUFFER_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_SAFETY_BUFFER_SECONDS", "180"))
 MAX_BACKOFF_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_MAX_BACKOFF_SECONDS", "21600"))
 
 LIMIT_PATTERNS = [
@@ -408,6 +408,38 @@ def resume_with_claude(marker: dict[str, Any]) -> subprocess.CompletedProcess[st
     return run_quiet([claude, "--resume", str(session_id), "--print", build_resume_prompt(marker)], timeout=600)
 
 
+def resolve_marker_path(marker: str) -> Path:
+    path = Path(marker).expanduser()
+    if path.exists():
+        return path
+    markers = state_dir() / "markers"
+    candidates = sorted(markers.glob(f"{marker}*.json")) if markers.exists() else []
+    if len(candidates) == 1:
+        return candidates[0]
+    if len(candidates) > 1:
+        raise SystemExit(f"marker prefix is ambiguous: {marker}")
+    return path
+
+
+def send_marker_now(marker_path: Path) -> int:
+    marker = load_existing_marker(marker_path)
+    if not marker:
+        print(f"marker not found or invalid: {marker_path}", file=sys.stderr)
+        return 1
+    result = resume_with_paseo(marker)
+    if result is None:
+        print("paseo send unavailable for this marker", file=sys.stderr)
+        return 1
+    if result.returncode != 0:
+        print(result.stdout, end="")
+        print(result.stderr, end="", file=sys.stderr)
+        return result.returncode or 1
+    print(f"sent resume prompt to Paseo agent {marker.get('paseo_agent_id')} from marker {marker_path.name}")
+    if result.stdout.strip():
+        print(result.stdout.strip())
+    return 0
+
+
 def write_marker(payload: dict[str, Any]) -> Path | None:
     text = "\n".join(flatten_strings(payload))
     if text and not contains_limit_signal(text):
@@ -750,7 +782,11 @@ def run_marker(marker_path: Path) -> int:
 
 
 def cmd_run(args: argparse.Namespace) -> int:
-    return run_marker(Path(args.marker).expanduser())
+    return run_marker(resolve_marker_path(args.marker))
+
+
+def cmd_send_now(args: argparse.Namespace) -> int:
+    return send_marker_now(resolve_marker_path(args.marker))
 
 
 def sweep_due_markers() -> list[Path]:
@@ -781,7 +817,12 @@ def cmd_status(_args: argparse.Namespace) -> int:
             continue
         for path in sorted(directory.glob("*.json")):
             data = load_existing_marker(path) or {}
-            print(f"  {path.name} retry_at={data.get('retry_at')} attempt={data.get('attempt')}")
+            retry = parse_timestamp(str(data.get("retry_at") or ""))
+            local_retry = retry.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z") if retry else "unknown"
+            print(
+                f"  {path.name} retry_at_utc={data.get('retry_at')} "
+                f"retry_at_local={local_retry} attempt={data.get('attempt')}"
+            )
     return 0
 
 
@@ -815,6 +856,9 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run a scheduled retry marker")
     run.add_argument("--marker", required=True)
     run.set_defaults(func=cmd_run)
+    send_now = sub.add_parser("send-now", help="Send a marker's Paseo resume prompt immediately for testing")
+    send_now.add_argument("marker", help="Marker path, file name, or unique prefix")
+    send_now.set_defaults(func=cmd_send_now)
     status = sub.add_parser("status", help="List pending/done/failed markers")
     status.set_defaults(func=cmd_status)
     scan = sub.add_parser("scan", help="Detect Claude Code session limit from local usage caches")
