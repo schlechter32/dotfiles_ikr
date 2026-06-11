@@ -25,6 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
 APP_NAME = "cc-paseo-limit-resume"
@@ -37,6 +38,7 @@ LIMIT_PATTERNS = [
     re.compile(pattern, re.IGNORECASE)
     for pattern in [
         r"subscription\s+quota\s+exceeded",
+        r"session\s+limit",
         r"quota\s+(?:exceeded|exhausted)",
         r"limit\s+exhausted",
         r"usage\s+quota",
@@ -160,13 +162,31 @@ def parse_absolute_reset(text: str, now: dt.datetime) -> dt.datetime | None:
         if parsed:
             return parsed
 
-    # Time-only reset. Treat as local time today/tomorrow.
-    time_only = re.search(r"(?:reset(?:s)?|try\s+again)\s+(?:at|after)\s+(\d{1,2}:\d{2})(?::\d{2})?", text, re.IGNORECASE)
+    # Time-only reset. Treat as local time today/tomorrow. Handles Claude Code
+    # TUI messages like: "You've hit your session limit · resets 3:10pm (Europe/Berlin)".
+    time_only = re.search(
+        r"(?:reset(?:s)?|try\s+again)\s+(?:at|after)?\s*"
+        r"(\d{1,2}:\d{2})\s*(am|pm)?(?:\s*\(([^)]+)\))?",
+        text,
+        re.IGNORECASE,
+    )
     if time_only:
-        local_tz = dt.datetime.now().astimezone().tzinfo
+        tzinfo = dt.datetime.now().astimezone().tzinfo
+        tz_name = time_only.group(3)
+        if tz_name:
+            try:
+                tzinfo = ZoneInfo(tz_name)
+            except ZoneInfoNotFoundError:
+                pass
         hour, minute = [int(part) for part in time_only.group(1).split(":")]
-        candidate = dt.datetime.now(local_tz).replace(hour=hour, minute=minute, second=0, microsecond=0)
-        if candidate <= dt.datetime.now(local_tz):
+        suffix = (time_only.group(2) or "").lower()
+        if suffix == "pm" and hour != 12:
+            hour += 12
+        if suffix == "am" and hour == 12:
+            hour = 0
+        now_local = dt.datetime.now(tzinfo)
+        candidate = now_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if candidate <= now_local:
             candidate += dt.timedelta(days=1)
         return candidate.astimezone(dt.timezone.utc)
 
@@ -433,7 +453,7 @@ def write_marker(payload: dict[str, Any]) -> Path | None:
 
 
 def write_marker_from_rate_cache(cache_path: Path) -> Path | None:
-    cache = load_existing_marker(cache_path)
+    cache = load_limit_cache(cache_path, Path.home() / ".claude" / "usage-poll.json")
     if not cache:
         return None
     try:
@@ -457,6 +477,29 @@ def write_marker_from_rate_cache(cache_path: Path) -> Path | None:
         "rate_cache": cache,
     }
     return write_marker(payload)
+
+
+def cache_timestamp(cache: dict[str, Any]) -> int:
+    for key in ("fetched_at", "last_success_at", "ts"):
+        try:
+            return int(str(cache.get(key, "0")))
+        except (TypeError, ValueError):
+            continue
+    return 0
+
+
+def load_limit_cache(rate_cache_path: Path, usage_poll_path: Path) -> dict[str, Any] | None:
+    candidates: list[dict[str, Any]] = []
+    for path, source in ((rate_cache_path, "rate-cache"), (usage_poll_path, "usage-poll")):
+        cache = load_existing_marker(path.expanduser())
+        if not cache:
+            continue
+        cache = dict(cache)
+        cache.setdefault("source", source)
+        candidates.append(cache)
+    if not candidates:
+        return None
+    return sorted(candidates, key=cache_timestamp, reverse=True)[0]
 
 
 def paseo_agents_root() -> Path:
@@ -498,6 +541,65 @@ def agent_session_id(agent: dict[str, Any]) -> str:
     return str(runtime.get("sessionId") or persistence.get("sessionId") or agent.get("id") or "unknown")
 
 
+def claude_transcript_path(session_id: str) -> str | None:
+    projects = Path.home() / ".claude" / "projects"
+    if not projects.exists():
+        return None
+    matches = sorted(projects.rglob(f"{session_id}.jsonl"), key=lambda path: path.stat().st_mtime if path.exists() else 0, reverse=True)
+    return str(matches[0]) if matches else None
+
+
+def recent_transcript_limit_text(transcript_path: str | None) -> str | None:
+    if not transcript_path:
+        return None
+    path = Path(transcript_path).expanduser()
+    if not path.exists():
+        return None
+    try:
+        lines = path.read_text(errors="replace").splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines[-2000:]):
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            entry = {"raw": line}
+        text = "\n".join(flatten_strings(entry))
+        if not contains_limit_signal(text):
+            continue
+        lower = text.lower()
+        is_error = bool(isinstance(entry, dict) and (entry.get("isApiErrorMessage") or entry.get("error") == "rate_limit"))
+        is_ui_limit = "you've hit your session limit" in lower or "you have hit your session limit" in lower
+        if is_error or is_ui_limit:
+            return text[:4000]
+    return None
+
+
+def build_paseo_agent_transcript_limit_payload(agent: dict[str, Any], transcript_path: str, limit_text: str) -> dict[str, Any]:
+    agent_id = str(agent.get("id") or agent_session_id(agent))
+    cwd = str(agent.get("cwd") or Path.home())
+    title = str(agent.get("title") or "Paseo Claude agent")
+    return {
+        "hook_event_name": "PaseoAgentTranscriptScan",
+        "session_id": agent_session_id(agent),
+        "transcript_path": transcript_path,
+        "cwd": cwd,
+        "paseo_agent_id": agent_id,
+        "error": {
+            "message": f"Claude Code session-limit text found in transcript for Paseo agent; agent={agent_id}; title={title}\n{limit_text}",
+        },
+        "paseo_agent": {
+            "id": agent_id,
+            "title": title,
+            "status": agent.get("lastStatus"),
+            "provider": agent_provider(agent),
+            "cwd": cwd,
+            "updatedAt": agent.get("updatedAt"),
+            "lastActivityAt": agent.get("lastActivityAt"),
+        },
+    }
+
+
 def build_paseo_agent_limit_payload(agent: dict[str, Any], cache: dict[str, Any], resets_at: int, r5: int) -> dict[str, Any]:
     reset = dt.datetime.fromtimestamp(resets_at, tz=dt.timezone.utc)
     agent_id = str(agent.get("id") or agent_session_id(agent))
@@ -506,6 +608,7 @@ def build_paseo_agent_limit_payload(agent: dict[str, Any], cache: dict[str, Any]
     return {
         "hook_event_name": "PaseoAgentRateCacheScan",
         "session_id": agent_session_id(agent),
+        "transcript_path": claude_transcript_path(agent_session_id(agent)),
         "cwd": cwd,
         "paseo_agent_id": agent_id,
         "error": {
@@ -525,22 +628,26 @@ def build_paseo_agent_limit_payload(agent: dict[str, Any], cache: dict[str, Any]
     }
 
 
-def write_markers_from_paseo_agents(cache_path: Path, *, since_hours: float) -> list[Path]:
-    cache = load_existing_marker(cache_path)
-    if not cache:
-        return []
-    try:
-        r5 = int(cache.get("r5", 0))
-        resets_at = int(str(cache.get("r5_resets_at", "0")))
-    except (TypeError, ValueError):
-        return []
-    if r5 < 100 or resets_at <= int(utc_now().timestamp()):
-        return []
+def write_markers_from_paseo_agents(cache_path: Path, usage_poll_path: Path, *, since_hours: float) -> list[Path]:
+    cache = load_limit_cache(cache_path, usage_poll_path)
+    cache_limit_active = False
+    r5 = 0
+    resets_at = 0
+    if cache:
+        try:
+            r5 = int(cache.get("r5", 0))
+            resets_at = int(str(cache.get("r5_resets_at", "0")))
+            cache_limit_active = r5 >= 100 and resets_at > int(utc_now().timestamp())
+        except (TypeError, ValueError):
+            cache_limit_active = False
 
     # Only agents active inside the current limit window were plausibly
     # interrupted by it; --since-hours stays as an additional cap.
-    window_start = dt.datetime.fromtimestamp(resets_at, tz=dt.timezone.utc) - dt.timedelta(hours=LIMIT_WINDOW_HOURS)
-    since = max(window_start, utc_now() - dt.timedelta(hours=since_hours))
+    if cache_limit_active:
+        window_start = dt.datetime.fromtimestamp(resets_at, tz=dt.timezone.utc) - dt.timedelta(hours=LIMIT_WINDOW_HOURS)
+        since = max(window_start, utc_now() - dt.timedelta(hours=since_hours))
+    else:
+        since = utc_now() - dt.timedelta(hours=since_hours)
     written: list[Path] = []
     for path in iter_paseo_agent_files(paseo_agents_root()):
         agent = load_existing_marker(path)
@@ -555,7 +662,14 @@ def write_markers_from_paseo_agents(cache_path: Path, *, since_hours: float) -> 
         if not is_recent_agent(agent, since):
             continue
         try:
-            marker = write_marker(build_paseo_agent_limit_payload(agent, cache, resets_at, r5))
+            transcript = claude_transcript_path(agent_session_id(agent))
+            limit_text = recent_transcript_limit_text(transcript)
+            if limit_text and transcript:
+                marker = write_marker(build_paseo_agent_transcript_limit_payload(agent, transcript, limit_text))
+            elif cache_limit_active and cache:
+                marker = write_marker(build_paseo_agent_limit_payload(agent, cache, resets_at, r5))
+            else:
+                marker = None
         except RuntimeError as exc:
             print(f"could not schedule marker for agent {agent.get('id')}: {exc}", file=sys.stderr)
             continue
@@ -677,8 +791,9 @@ def cmd_scan(args: argparse.Namespace) -> int:
     for path in sweep_due_markers():
         print(f"ran past-due resume marker: {path.name}")
     cache_path = Path(args.rate_cache).expanduser()
+    usage_poll_path = Path(args.usage_poll).expanduser()
     if args.paseo_agents:
-        paths = write_markers_from_paseo_agents(cache_path, since_hours=float(args.since_hours))
+        paths = write_markers_from_paseo_agents(cache_path, usage_poll_path, since_hours=float(args.since_hours))
         for path in paths:
             print(f"scheduled quota resume marker from Paseo agent state: {path}")
         if not paths:
@@ -702,8 +817,9 @@ def build_parser() -> argparse.ArgumentParser:
     run.set_defaults(func=cmd_run)
     status = sub.add_parser("status", help="List pending/done/failed markers")
     status.set_defaults(func=cmd_status)
-    scan = sub.add_parser("scan", help="Detect Claude Code session limit from local rate cache")
+    scan = sub.add_parser("scan", help="Detect Claude Code session limit from local usage caches")
     scan.add_argument("--rate-cache", default=str(Path.home() / ".claude" / "rate-cache.json"))
+    scan.add_argument("--usage-poll", default=str(Path.home() / ".claude" / "usage-poll.json"))
     scan.add_argument("--paseo-agents", action="store_true", default=True, help="Create one marker per recent limited Paseo Claude agent")
     scan.add_argument("--global-marker", dest="paseo_agents", action="store_false", help="Create one global marker instead of per-agent markers")
     scan.add_argument("--since-hours", default="24", help="Only consider Paseo Claude agents active within this many hours")
