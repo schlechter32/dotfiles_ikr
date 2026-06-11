@@ -1,59 +1,36 @@
 #!/bin/bash
+# Thin shim — delegates to the Python rewrite that properly decodes RFC 2047
+# encoded-word subjects (no more =?utf-8?Q?…?= or =?iso-8859-1?Q?…?= leaking
+# to the phone). The previous bash version is preserved as
+# ~/localapps/bin/mailnotify.bash.bak alongside the symlink.
+#
+# Defaults to notifying about the newest message in ~/Mail/inbox; override
+# with --maildir / --file. Recipient comes from $MAILNOTIFY_TO unless --to
+# is passed.
+#
+# Privacy rules enforced by the Python script:
+#   - never includes the source body / Cc / To / attachments
+#   - subject is truncated to the first MAILNOTIFY_SUBJECT_CHARS chars
+set -e
 
-# Get the script's directory (for potential relative paths later)
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PY_SCRIPT="${MAILNOTIFY_PY:-$HOME/source/mailtui/scripts/mailnotify.py}"
 
-# Get the current date and time
-current_date=$(date +"%a, %d %b %Y %H:%M:%S %z")
-date_only=$(date +"%Y-%m-%d")
-time_only=$(date +"%H:%M:%S")
+if [[ ! -f "${PY_SCRIPT}" ]]; then
+    echo "mailnotify: ${PY_SCRIPT} not found — set MAILNOTIFY_PY to override" >&2
+    exit 1
+fi
 
-# Generate a new random number for the Message-ID (up to 5 digits)
-new_message_id=$(printf "%05d" $((RANDOM % 100000)))
+# Default recipient — Proton.
+: "${MAILNOTIFY_TO:=nicolas.hornek@proton.me}"
+export MAILNOTIFY_TO
 
-# Define the email content (using a heredoc) – *PRESERVING YOUR ORIGINAL From, To, etc.*
-email_content=$(/usr/bin/cat "$HOME/Mail/inbox/cur/$(ls $HOME/Mail/inbox/cur | tail -n 1)")
-# echo $email_content
-sender=$(echo "$email_content" | grep -m 1 "^From:" | sed 's/^From: //')
+# Default From: identity.
+: "${MAILNOTIFY_FROM:=Nicolas Hornek <nicolas.hornek@ikr.uni-stuttgart.de>}"
+export MAILNOTIFY_FROM
 
-# Extract the Subject
-subject=$(echo "$email_content" | grep -m 1 "^Subject:" | sed 's/^Subject: //')
+# Default subject-chars cap. 15 chars is enough to recognise familiar
+# senders / threads without leaking sensitive subjects in full.
+: "${MAILNOTIFY_SUBJECT_CHARS:=15}"
+export MAILNOTIFY_SUBJECT_CHARS
 
-# Output the extracted information
-echo "Sender: $sender"
-echo "Subject: $subject"
-email_content=$(cat <<EOF
-From: Nicolas Hornek <nicolas.hornek@ikr.uni-stuttgart.de>
-Organization: University of Stuttgart (Germany), IKR
-To: nicolas.hornek@outlook.com
-Subject: IKR $date_only $time_only
-Date: $current_date
-User-Agent: KMail/1.9.10
-MIME-Version: 1.0
-Content-Type: Text/Plain;
-  charset="us-ascii"
-Content-Transfer-Encoding: 7bit
-Content-Disposition: inline
-X-KMail-Recipients: nicolas.hornek@outlook.com
-Message-Id: <$new_message_id.$new_message_id.nicolas.hornek@ikr.uni-stuttgart.de>
-Status: R
-X-Status: NQ
-X-KMail-EncryptionState:  
-X-KMail-SignatureState:  
-X-KMail-MDN-Sent:  
-
-From: $sender
-Subject: $subject
-EOF
-)
-
-# Send the email using sendmail
-echo "$email_content" | /usr/sbin/sendmail -t
-
-# Check if sendmail succeeded and notify the user
-# if [[ $? -eq 0 ]]; then
-    # echo "Email sent successfully using sendmail."
-# else
-    # echo "Error: Failed to send email using sendmail."
-    # exit 1
-# fi
+exec python3 "${PY_SCRIPT}" "$@"
