@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# pyright: reportExplicitAny=false, reportAny=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnusedCallResult=false, reportImplicitStringConcatenation=false, reportUnusedParameter=false
+# pyright: reportExplicitAny=false, reportAny=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportOptionalMemberAccess=false, reportUnusedCallResult=false, reportImplicitStringConcatenation=false, reportUnusedParameter=false
 """Deterministic Claude Code quota reset resume bridge for Paseo.
 
 This file intentionally has no third-party dependencies.  It is used in two
@@ -29,6 +29,7 @@ from typing import Any
 
 APP_NAME = "cc-paseo-limit-resume"
 DEFAULT_DELAY_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_DEFAULT_DELAY_SECONDS", "3600"))
+LIMIT_WINDOW_HOURS = float(os.environ.get("CC_PASEO_LIMIT_WINDOW_HOURS", "5"))
 SAFETY_BUFFER_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_SAFETY_BUFFER_SECONDS", "120"))
 MAX_BACKOFF_SECONDS = int(os.environ.get("CC_PASEO_LIMIT_MAX_BACKOFF_SECONDS", "21600"))
 
@@ -233,9 +234,17 @@ def cron_tag(marker: Path) -> str:
     return f"# {APP_NAME}:{marker.stem}"
 
 
+def bridge_script_path() -> Path:
+    return Path(__file__).resolve()
+
+
 def portable_runner_command(marker: Path) -> str:
-    script = "$HOME/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py"
-    return f"python3 {script} run --marker {shlex.quote(str(marker))}"
+    script = bridge_script_path()
+    try:
+        script_str = "$HOME/" + str(script.relative_to(Path.home()))
+    except ValueError:
+        script_str = shlex.quote(str(script))
+    return f"python3 {script_str} run --marker {shlex.quote(str(marker))}"
 
 
 def schedule_systemd(marker: Path, retry_at: dt.datetime) -> str | None:
@@ -258,6 +267,9 @@ def schedule_systemd(marker: Path, retry_at: dt.datetime) -> str | None:
     ]
     result = run_quiet(cmd)
     if result.returncode == 0:
+        return "systemd-user"
+    # A transient timer from an earlier scheduling pass is still pending.
+    if "already exists" in result.stderr:
         return "systemd-user"
     return None
 
@@ -339,7 +351,7 @@ def infer_paseo_agent_id(marker: dict[str, Any]) -> str | None:
         str(marker.get("cwd") or ""),
     ]
     candidates: list[tuple[float, str]] = []
-    for path in agents_dir.glob("*.json"):
+    for path in agents_dir.rglob("*.json"):
         try:
             data = json.loads(path.read_text())
         except (OSError, json.JSONDecodeError):
@@ -384,6 +396,11 @@ def write_marker(payload: dict[str, Any]) -> Path | None:
     mid = marker_id(payload)
     path = markers / f"{mid}.json"
     existing = load_existing_marker(path) or {}
+    # Already pending with a wakeup in the future: leave it alone so repeated
+    # scans/hooks don't inflate the attempt counter or double-schedule.
+    pending_retry = parse_timestamp(existing.get("retry_at"))
+    if pending_retry and pending_retry > utc_now():
+        return None
     attempt = int(existing.get("attempt", 0)) + 1
     retry_at, reason = compute_retry_at(payload, attempt)
 
@@ -397,7 +414,7 @@ def write_marker(payload: dict[str, Any]) -> Path | None:
         "session_id": payload.get("session_id") or payload.get("sessionId"),
         "transcript_path": payload.get("transcript_path") or payload.get("transcriptPath"),
         "cwd": payload.get("cwd") or os.getcwd(),
-        "paseo_agent_id": os.environ.get("PASEO_AGENT_ID") or os.environ.get("PASEO_AGENT"),
+        "paseo_agent_id": payload.get("paseo_agent_id") or os.environ.get("PASEO_AGENT_ID") or os.environ.get("PASEO_AGENT"),
         "hook_event_name": payload.get("hook_event_name") or payload.get("hookEventName"),
         "last_error_excerpt": text[:4000],
         "raw_payload": payload,
@@ -412,6 +429,138 @@ def write_marker(payload: dict[str, Any]) -> Path | None:
     return path
 
 
+def write_marker_from_rate_cache(cache_path: Path) -> Path | None:
+    cache = load_existing_marker(cache_path)
+    if not cache:
+        return None
+    try:
+        r5 = int(cache.get("r5", 0))
+        resets_at = int(str(cache.get("r5_resets_at", "0")))
+    except (TypeError, ValueError):
+        return None
+    if r5 < 100 or resets_at <= int(utc_now().timestamp()):
+        return None
+    reset = dt.datetime.fromtimestamp(resets_at, tz=dt.timezone.utc)
+    cwd = str(cache.get("cwd") or Path.home())
+    session = "claude-rate-limit-" + hashlib.sha256(cwd.encode()).hexdigest()[:12]
+    payload = {
+        "hook_event_name": "RateCacheScan",
+        "session_id": session,
+        "cwd": cwd,
+        "error": {
+            "message": "Claude Code rate limit/session limit detected from ~/.claude/rate-cache.json; "
+            f"usage={r5}%; reset at {reset.isoformat()}",
+        },
+        "rate_cache": cache,
+    }
+    return write_marker(payload)
+
+
+def paseo_agents_root() -> Path:
+    return Path(os.environ.get("PASEO_HOME", str(Path.home() / ".paseo"))).expanduser() / "agents"
+
+
+def iter_paseo_agent_files(root: Path) -> list[Path]:
+    if not root.exists():
+        return []
+    return sorted(path for path in root.rglob("*.json") if path.is_file())
+
+
+def parse_timestamp(value: object) -> dt.datetime | None:
+    if not isinstance(value, str) or not value:
+        return None
+    try:
+        return parse_iso(value)
+    except ValueError:
+        return None
+
+
+def is_recent_agent(agent: dict[str, Any], since: dt.datetime) -> bool:
+    for key in ("lastActivityAt", "updatedAt", "lastUserMessageAt", "createdAt"):
+        parsed = parse_timestamp(agent.get(key))
+        if parsed and parsed >= since:
+            return True
+    return False
+
+
+def agent_provider(agent: dict[str, Any]) -> str:
+    runtime = agent.get("runtimeInfo") if isinstance(agent.get("runtimeInfo"), dict) else {}
+    persistence = agent.get("persistence") if isinstance(agent.get("persistence"), dict) else {}
+    return str(runtime.get("provider") or persistence.get("provider") or agent.get("provider") or "")
+
+
+def agent_session_id(agent: dict[str, Any]) -> str:
+    runtime = agent.get("runtimeInfo") if isinstance(agent.get("runtimeInfo"), dict) else {}
+    persistence = agent.get("persistence") if isinstance(agent.get("persistence"), dict) else {}
+    return str(runtime.get("sessionId") or persistence.get("sessionId") or agent.get("id") or "unknown")
+
+
+def build_paseo_agent_limit_payload(agent: dict[str, Any], cache: dict[str, Any], resets_at: int, r5: int) -> dict[str, Any]:
+    reset = dt.datetime.fromtimestamp(resets_at, tz=dt.timezone.utc)
+    agent_id = str(agent.get("id") or agent_session_id(agent))
+    cwd = str(agent.get("cwd") or cache.get("cwd") or Path.home())
+    title = str(agent.get("title") or "Paseo Claude agent")
+    return {
+        "hook_event_name": "PaseoAgentRateCacheScan",
+        "session_id": agent_session_id(agent),
+        "cwd": cwd,
+        "paseo_agent_id": agent_id,
+        "error": {
+            "message": "Claude Code rate limit/session limit detected for Paseo agent; "
+            f"usage={r5}%; reset at {reset.isoformat()}; agent={agent_id}; title={title}",
+        },
+        "rate_cache": cache,
+        "paseo_agent": {
+            "id": agent_id,
+            "title": title,
+            "status": agent.get("lastStatus"),
+            "provider": agent_provider(agent),
+            "cwd": cwd,
+            "updatedAt": agent.get("updatedAt"),
+            "lastActivityAt": agent.get("lastActivityAt"),
+        },
+    }
+
+
+def write_markers_from_paseo_agents(cache_path: Path, *, since_hours: float) -> list[Path]:
+    cache = load_existing_marker(cache_path)
+    if not cache:
+        return []
+    try:
+        r5 = int(cache.get("r5", 0))
+        resets_at = int(str(cache.get("r5_resets_at", "0")))
+    except (TypeError, ValueError):
+        return []
+    if r5 < 100 or resets_at <= int(utc_now().timestamp()):
+        return []
+
+    # Only agents active inside the current limit window were plausibly
+    # interrupted by it; --since-hours stays as an additional cap.
+    window_start = dt.datetime.fromtimestamp(resets_at, tz=dt.timezone.utc) - dt.timedelta(hours=LIMIT_WINDOW_HOURS)
+    since = max(window_start, utc_now() - dt.timedelta(hours=since_hours))
+    written: list[Path] = []
+    for path in iter_paseo_agent_files(paseo_agents_root()):
+        agent = load_existing_marker(path)
+        if not agent:
+            continue
+        if agent.get("archivedAt"):
+            continue
+        if agent_provider(agent) != "claude":
+            continue
+        if str(agent.get("lastStatus") or "") not in {"idle", "running", "error"}:
+            continue
+        if not is_recent_agent(agent, since):
+            continue
+        try:
+            marker = write_marker(build_paseo_agent_limit_payload(agent, cache, resets_at, r5))
+        except RuntimeError as exc:
+            print(f"could not schedule marker for agent {agent.get('id')}: {exc}", file=sys.stderr)
+            continue
+        if marker:
+            written.append(marker)
+    return written
+
+
 def cmd_hook(_args: argparse.Namespace) -> int:
     payload = read_stdin_json()
     try:
@@ -419,15 +568,15 @@ def cmd_hook(_args: argparse.Namespace) -> int:
     except Exception as exc:  # Hook output is ignored for StopFailure; log only.
         log_dir = state_dir() / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
-        (log_dir / "hook-errors.log").write_text(f"{utc_now().isoformat()} {exc}\n")
+        with (log_dir / "hook-errors.log").open("a") as fh:
+            fh.write(f"{utc_now().isoformat()} {exc}\n")
         return 0
     if path:
         print(f"scheduled quota resume marker: {path}")
     return 0
 
 
-def cmd_run(args: argparse.Namespace) -> int:
-    marker_path = Path(args.marker).expanduser()
+def run_marker(marker_path: Path) -> int:
     remove_cron_entry(marker_path)
     marker = load_existing_marker(marker_path)
     if not marker:
@@ -479,7 +628,30 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         marker["last_command_stderr"] = "No resume command was available. Install paseo CLI or claude CLI, or export PASEO_AGENT_ID."
     (fail_dir / marker_path.name).write_text(json.dumps(marker, indent=2, sort_keys=True) + "\n")
+    marker_path.unlink(missing_ok=True)
     return 1
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    return run_marker(Path(args.marker).expanduser())
+
+
+def sweep_due_markers() -> list[Path]:
+    """Run markers whose retry time has passed but whose one-shot wakeup was
+    lost (e.g. transient systemd timers do not survive a reboot)."""
+    markers = state_dir() / "markers"
+    if not markers.exists():
+        return []
+    swept: list[Path] = []
+    for path in sorted(markers.glob("*.json")):
+        data = load_existing_marker(path)
+        if not data:
+            continue
+        retry = parse_timestamp(str(data.get("retry_at") or ""))
+        if retry and retry <= utc_now():
+            run_marker(path)
+            swept.append(path)
+    return swept
 
 
 def cmd_status(_args: argparse.Namespace) -> int:
@@ -496,6 +668,27 @@ def cmd_status(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_scan(args: argparse.Namespace) -> int:
+    # "Nothing to do" is the normal state; always exit 0 so the systemd
+    # service does not show as failed on every tick.
+    for path in sweep_due_markers():
+        print(f"ran past-due resume marker: {path.name}")
+    cache_path = Path(args.rate_cache).expanduser()
+    if args.paseo_agents:
+        paths = write_markers_from_paseo_agents(cache_path, since_hours=float(args.since_hours))
+        for path in paths:
+            print(f"scheduled quota resume marker from Paseo agent state: {path}")
+        if not paths:
+            print("no new limited Paseo Claude agents found")
+        return 0
+    path = write_marker_from_rate_cache(cache_path)
+    if path:
+        print(f"scheduled quota resume marker from global rate cache: {path}")
+    else:
+        print("no new Claude session-limit reset found in rate cache")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -506,6 +699,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.set_defaults(func=cmd_run)
     status = sub.add_parser("status", help="List pending/done/failed markers")
     status.set_defaults(func=cmd_status)
+    scan = sub.add_parser("scan", help="Detect Claude Code session limit from local rate cache")
+    scan.add_argument("--rate-cache", default=str(Path.home() / ".claude" / "rate-cache.json"))
+    scan.add_argument("--paseo-agents", action="store_true", default=True, help="Create one marker per recent limited Paseo Claude agent")
+    scan.add_argument("--global-marker", dest="paseo_agents", action="store_false", help="Create one global marker instead of per-agent markers")
+    scan.add_argument("--since-hours", default="24", help="Only consider Paseo Claude agents active within this many hours")
+    scan.set_defaults(func=cmd_scan)
     return parser
 
 

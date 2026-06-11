@@ -325,17 +325,34 @@ local function claude_usage()
 	if not d then return nil end
 
 	local now = os.time()
-	-- If the window's reset time has already passed since the cache was
-	-- written, the limit has rolled over → report 0 instead of a stale value.
-	-- resets_at is unix-epoch seconds (string or number); non-numeric → skip.
-	local function pct(value, resets_at)
+
+	-- Returns (pct, mins_until_reset).
+	-- pct: 0 when window already rolled over; mins: nil when unknown.
+	local function bucket(value, resets_at)
 		local v = tonumber(value) or 0
 		local r = tonumber(resets_at)
-		if r and now >= r then return 0 end
-		return v
+		if r and now >= r then return 0, nil end
+		local mins = r and math.max(0, math.floor((r - now) / 60)) or nil
+		return v, mins
 	end
 
-	return pct(d.r5, d.r5_resets_at), pct(d.r7, d.r7_resets_at)
+	local r5, m5 = bucket(d.r5, d.r5_resets_at)
+	local r7, m7 = bucket(d.r7, d.r7_resets_at)
+	return r5, r7, m5, m7
+end
+
+-- Format minutes as "47m", "2h3m", "1d2h" depending on magnitude.
+local function fmt_mins(m)
+	if not m then return nil end
+	if m < 60 then return string.format("%dm", m) end
+	local h = math.floor(m / 60)
+	local rm = m % 60
+	if h < 24 then
+		return rm > 0 and string.format("%dh%dm", h, rm) or string.format("%dh", h)
+	end
+	local days = math.floor(h / 24)
+	local rh = h % 24
+	return rh > 0 and string.format("%dd%dh", days, rh) or string.format("%dd", days)
 end
 
 -- Opportunistically refresh the poll cache while WezTerm is open. The poller
@@ -384,16 +401,26 @@ wezterm.on("update-right-status", function(window)
 	local time = wezterm.strftime("%a %d.%m %H:%M")
 
 	local segments = {}
-	local r5, r7 = claude_usage()
+	local r5, r7, m5, m7 = claude_usage()
 	if r5 then
+		local t5 = fmt_mins(m5)
+		local t7 = fmt_mins(m7)
 		table.insert(segments, { Foreground = { Color = "#a6d189" } })
 		table.insert(segments, { Text = "󰚩 " })
 		table.insert(segments, { Foreground = { Color = usage_color(r5) } })
 		table.insert(segments, { Text = string.format("5h %d%%", r5) })
+		if t5 then
+			table.insert(segments, { Foreground = { Color = "#585b70" } })
+			table.insert(segments, { Text = " " .. t5 })
+		end
 		table.insert(segments, { Foreground = { Color = "#6c7086" } })
 		table.insert(segments, { Text = " · " })
 		table.insert(segments, { Foreground = { Color = usage_color(r7) } })
 		table.insert(segments, { Text = string.format("7d %d%%", r7) })
+		if t7 then
+			table.insert(segments, { Foreground = { Color = "#585b70" } })
+			table.insert(segments, { Text = " " .. t7 })
+		end
 		table.insert(segments, { Foreground = { Color = "#6c7086" } })
 		table.insert(segments, { Text = "  │  " })
 	end

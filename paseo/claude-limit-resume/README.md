@@ -18,26 +18,42 @@ reset time.  If no reset time is present, it uses a configurable backoff timer.
 cd ~/dotfiles_ikr/paseo/claude-limit-resume
 chmod +x cc_paseo_limit_bridge.py install.py
 ./install.py
+./install.py --install-timer
 ```
 
 The installer backs up `~/.claude/settings.json` before changing it.
+`--install-timer` installs a user systemd timer that runs the deterministic Paseo
+agent scanner every minute. It does not call an AI; it only reads local Paseo
+agent state plus `~/.claude/rate-cache.json` and creates one-shot resume markers
+when a reset time is known.  The same timer also acts as a watchdog: it runs any
+marker whose retry time has passed, so resumes survive reboots (transient
+`systemd-run` timers do not).
 
 ## Move to another machine
 
 Copy/sync your dotfiles to the new machine, then run:
 
 ```bash
-cd ~/dotfiles_ikr/paseo/claude-limit-resume
+cd ~/dotfiles_ikr/paseo/claude-limit-resume   # or wherever the repo lives
 chmod +x cc_paseo_limit_bridge.py install.py
 ./install.py
+./install.py --install-timer
 ```
 
-No Paseo fork is required.  The only requirements are Python 3 and at least one
-available scheduler:
+That is everything.  The installer derives all paths from its own location, so
+the repo can live anywhere; the hook command and the systemd unit are written
+relative to `$HOME` when possible, never hardcoded to `~/dotfiles_ikr`.  Re-run
+both commands after moving the repo to a different path.
 
-1. `systemd-run --user` preferred,
-2. `at` fallback,
-3. `crontab` fallback.
+No Paseo fork is required.  Requirements:
+
+- Python 3 (stdlib only, no pip installs);
+- for the per-minute scanner/watchdog: a systemd user instance
+  (`systemctl --user`).  Without one, `--install-timer` prints a warning and
+  skips; the hook-only mode still works through one of:
+  1. `systemd-run --user` preferred,
+  2. `at` fallback,
+  3. `crontab` fallback.
 
 ## How scheduling works
 
@@ -72,6 +88,12 @@ reset time or exponential backoff.  If the retry succeeds, the marker is moved t
 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py status
 ```
 
+Manual Paseo-agent scan:
+
+```bash
+~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py scan --paseo-agents
+```
+
 ## Tuning
 
 Environment variables:
@@ -81,6 +103,8 @@ Environment variables:
 - `CC_PASEO_LIMIT_SAFETY_BUFFER_SECONDS` — extra delay after parsed reset time. Default: `120`.
 - `CC_PASEO_LIMIT_MAX_BACKOFF_SECONDS` — maximum fallback backoff. Default: `21600`.
 - `CC_PASEO_LIMIT_SCHEDULER=none` — testing only; write markers without creating OS timers.
+- `CC_PASEO_LIMIT_WINDOW_HOURS` — length of the provider limit window; the scanner
+  only resumes Paseo agents active inside the current window. Default: `5`.
 - `PASEO_CLI` — override `paseo` command path.
 - `CLAUDE_CLI` — override `claude` command path.
 

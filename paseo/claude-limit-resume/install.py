@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# pyright: reportExplicitAny=false, reportAny=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnusedCallResult=false
+# pyright: reportExplicitAny=false, reportAny=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false, reportUnusedCallResult=false, reportImplicitStringConcatenation=false
 """Install the Claude Code StopFailure hook for cc-paseo-limit-resume."""
 
 from __future__ import annotations
@@ -9,6 +9,7 @@ import datetime as dt
 import json
 import os
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -60,13 +61,63 @@ def install_hook(settings: dict[str, Any], command: str) -> bool:
     return True
 
 
+def bridge_script() -> Path:
+    return Path(__file__).resolve().parent / "cc_paseo_limit_bridge.py"
+
+
+def bridge_exec_path() -> str:
+    """Path usable in a systemd ExecStart line; %h keeps the unit portable
+    across machines with different home directories."""
+    script = bridge_script()
+    try:
+        return "%h/" + str(script.relative_to(Path.home()))
+    except ValueError:
+        return str(script)
+
+
+def install_systemd_timer() -> bool:
+    if not shutil.which("systemctl"):
+        print("systemctl not found; skipping timer install (hook-only mode still works via at/cron)")
+        return False
+    systemd_dir = Path.home() / ".config" / "systemd" / "user"
+    systemd_dir.mkdir(parents=True, exist_ok=True)
+    service = systemd_dir / "cc-paseo-limit-resume-scan.service"
+    timer = systemd_dir / "cc-paseo-limit-resume-scan.timer"
+    service.write_text(
+        "[Unit]\n"
+        "Description=Scan Paseo Claude agents for Claude Code session-limit reset\n\n"
+        "[Service]\n"
+        "Type=oneshot\n"
+        f"ExecStart=/usr/bin/env python3 {bridge_exec_path()} scan --paseo-agents\n"
+    )
+    timer.write_text(
+        "[Unit]\n"
+        "Description=Run cc-paseo-limit-resume scanner deterministically\n\n"
+        "[Timer]\n"
+        "OnBootSec=1min\n"
+        "OnUnitActiveSec=1min\n"
+        "AccuracySec=10s\n"
+        "Persistent=true\n\n"
+        "[Install]\n"
+        "WantedBy=timers.target\n"
+    )
+    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    subprocess.run(["systemctl", "--user", "enable", "--now", timer.name], check=False)
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--settings", type=Path, default=claude_settings_path())
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--install-timer", action="store_true", help="Install a deterministic user systemd scanner for Paseo agents")
     args = parser.parse_args()
 
-    command = "python3 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py hook"
+    script = bridge_script()
+    try:
+        command = "python3 ~/" + str(script.relative_to(Path.home())) + " hook"
+    except ValueError:
+        command = f"python3 {script} hook"
     settings_path = args.settings.expanduser()
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     settings = load_json(settings_path)
@@ -79,8 +130,11 @@ def main() -> int:
         stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
         shutil.copy2(settings_path, settings_path.with_suffix(settings_path.suffix + f".bak-{stamp}"))
     settings_path.write_text(rendered)
+    timer_installed = install_systemd_timer() if args.install_timer else False
     print(f"installed StopFailure hook in {settings_path}")
     print(f"command: {command}")
+    if timer_installed:
+        print("installed user systemd timer: cc-paseo-limit-resume-scan.timer")
     return 0
 
 

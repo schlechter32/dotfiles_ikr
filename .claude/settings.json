@@ -3,17 +3,17 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
   },
-
   "permissions": {
     "defaultMode": "auto"
   },
   "hooks": {
-    "Stop": [
+    "StopFailure": [
       {
+        "matcher": "rate_limit|billing_error|authentication_failed|api_error|overloaded",
         "hooks": [
           {
             "type": "command",
-            "command": "echo $CLAUDE_SESSION_ID >> ~/.claude/extraction-queue.txt"
+            "command": "python3 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py hook"
           }
         ]
       }
@@ -28,18 +28,5 @@
   "statusLine": {
     "type": "command",
     "command": "bash ~/nbin/claude-statusline.sh"
-  },
-  "hooks": {
-    "StopFailure": [
-      {
-        "matcher": "rate_limit|billing_error|authentication_failed|api_error|overloaded",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py hook"
-          }
-        ]
-      }
-    ]
   }
 }
