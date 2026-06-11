@@ -1,6 +1,27 @@
 {
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
+  },
+
   "permissions": {
     "defaultMode": "auto"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo $CLAUDE_SESSION_ID >> ~/.claude/extraction-queue.txt"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "claude-md-management@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true
   },
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true
