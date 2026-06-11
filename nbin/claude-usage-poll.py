@@ -36,7 +36,8 @@ OAUTH_CLIENT_ID = os.environ.get(
 )
 
 API_TIMEOUT = 10
-SUCCESS_INTERVAL = 50 * 60      # don't re-poll for 50 min after a success
+SUCCESS_INTERVAL = 3 * 60       # don't re-poll for 3 min after a success
+                                # (trial value; raise if the endpoint starts 429ing)
 TRANSIENT_INTERVAL = 5 * 60     # retry sooner after a network/parse error
 MAX_BACKOFF = 2 * 60 * 60       # cap any server retry-after at 2h
 TOKEN_REFRESH_BUFFER_MS = 60_000

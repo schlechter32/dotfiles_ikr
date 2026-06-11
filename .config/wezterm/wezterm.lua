@@ -357,7 +357,9 @@ local function maybe_spawn_poller()
 		end
 	end
 	last_poll_spawn = t
-	wezterm.background_child_process({ "python3", home .. "/nbin/claude-usage-poll.py" })
+	-- background_child_process requires {args={...}} but is finicky in older builds;
+	-- io.popen with & is simpler and guaranteed to work.
+	io.popen("python3 " .. home .. "/nbin/claude-usage-poll.py &")
 end
 
 -- Threshold colors (Catppuccin Mocha), matching the statusline script.
