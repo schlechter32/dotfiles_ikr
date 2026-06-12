@@ -1,12 +1,3 @@
-local util = require("lspconfig.util")
-vim.lsp.config("copilot", {
-	settings = {
-		telemetry = {
-			telemetryLevel = "off",
-		},
-	},
-})
-
 -- JetLS using your working defaults (configure before enabling)
 vim.lsp.config("jetls", {
 	cmd = {
@@ -17,7 +8,7 @@ vim.lsp.config("jetls", {
 })
 
 -- Base server enabling (after configs are defined)
-vim.lsp.enable({ "marksman", "lua_ls", "basedpyright", "texlab", "nil_ls", "jetls", "copilot" })
+vim.lsp.enable({ "marksman", "lua_ls", "basedpyright", "texlab", "nil_ls", "jetls" })
 
 vim.lsp.config("texlab", {
 	settings = {

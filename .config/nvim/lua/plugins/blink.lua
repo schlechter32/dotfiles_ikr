@@ -6,9 +6,6 @@ return {
 			signature = { enabled = true },
 			sources = {
 				default = { "lsp", "path", "snippets", "buffer" },
-				per_filetype = {
-					markdown = { "obsidian", "obsidian_new", "obsidian_tags", "lsp", "path", "snippets", "buffer" },
-				},
 			},
 			keymap = {
 				preset = "enter",

@@ -11,7 +11,7 @@ vim.keymap.set("n", "<leader>rn",function()
  
 vim.keymap.set("n", "<leader>rr",function()
     vscode.action("editor.action.goToReferences")
-  end, { desc = "VSCode rename" })
+  end, { desc = "VSCode references" })
  
 vim.keymap.set("n", "<leader>gd",function()
     vscode.action("editor.action.revealDefinition")
@@ -37,13 +37,13 @@ vim.keymap.set("n", "<leader> ",function()
     vscode.action("workbench.action.quickOpen")
   end, { desc = "VSCode pick files" })
 
-vim.keymap.set("v", "<C-j> ",function()
-    vscode.action("editor.action.moveLinesdownAction")
-  end, { desc = "VSCode pick files" })
+vim.keymap.set("v", "<C-j>",function()
+    vscode.action("editor.action.moveLinesDownAction")
+  end, { desc = "VSCode move line down" })
 
-vim.keymap.set("n", "<leader>lv ",function()
+vim.keymap.set("n", "<leader>lv",function()
     vscode.action("latex-workshop.synctex")
-  end, { desc = "VSCode pick files" })
+  end, { desc = "VSCode SyncTeX" })
 
 vim.keymap.set("n", "<leader>q",function()
     vscode.action("workbench.action.closeActiveEditor")

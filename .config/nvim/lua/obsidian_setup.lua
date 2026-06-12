@@ -22,7 +22,6 @@ require("obsidian").setup({
 		date_format = "%Y-%m-%d",
 		alias_format = "%B %-d, %Y",
 	},
-	completion = { blink = true, min_chars = 2 },
 	link = { style = "markdown" },
 	new_notes_location = "notes_subdir",
 	note_id_func = function(title)
