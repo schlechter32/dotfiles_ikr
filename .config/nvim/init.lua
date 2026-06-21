@@ -1,21 +1,44 @@
--- Bootstrap pack-manager if missing
-local pack_path = vim.fn.stdpath("data") .. "/site/pack/core/start/pack-manager.nvim"
-if not vim.uv.fs_stat(pack_path) then
-	vim.notify("Installing pack-manager.nvim...")
-	vim.fn.system({ "git", "clone", "--depth=1", "https://github.com/GlennMm/pack-manager.nvim.git", pack_path })
-	vim.cmd("packloadall!")
-	vim.notify("Pack-manager installed! Please restart Neovim.")
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.uv.fs_stat(lazypath) then
+	vim.fn.system({
+		"git",
+		"clone",
+		"--filter=blob:none",
+		"https://github.com/folke/lazy.nvim.git",
+		"--branch=stable",
+		lazypath,
+	})
 end
+vim.opt.rtp:prepend(lazypath)
 
--- Load pack-manager and set it up early
-require("pack-manager").setup({
-	auto_install = true,
-	show_progress = true,
-})
-
--- Load modular config
 require("config.options")
 require("config.keymaps")
-require("config.plugins")
 require("config.autocmds")
+
+-- Collect plugin specs from lua/plugins/*.lua
+local plugin_specs = {}
+local plugins_dir = vim.fn.stdpath("config") .. "/lua/plugins"
+for _, file in ipairs(vim.fn.readdir(plugins_dir)) do
+	if file:match("%.lua$") then
+		local mod = "plugins." .. file:gsub("%.lua$", "")
+		local ok, spec = pcall(require, mod)
+		if ok then
+			if spec[1] or spec.dir then
+				table.insert(plugin_specs, spec)
+			else
+				for _, s in ipairs(spec) do
+					table.insert(plugin_specs, s)
+				end
+			end
+		end
+	end
+end
+
+require("lazy").setup(plugin_specs, {
+	defaults = { lazy = false },
+	install = { colorscheme = { "noctis_uva" } },
+	lockfile = vim.fn.stdpath("config") .. "/lazy-lock.json",
+	change_detection = { notify = false },
+})
+
 require("config.lsp")

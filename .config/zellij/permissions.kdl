@@ -1,0 +1,20 @@
+"/u/home/wima/nclshrnk/.config/zellij/plugins/zellij-status.wasm" {
+    ChangeApplicationState
+    ReadApplicationState
+    RunCommands
+    ReadCliPipes
+}
+"file:/u/home/wima/nclshrnk/.config/zellij/plugins/zellij-status.wasm" {
+    ReadCliPipes
+    RunCommands
+    ChangeApplicationState
+    MessageAndLaunchOtherPlugins
+    ReadApplicationState
+}
+"file:~/.config/zellij/plugins/zellij-status.wasm" {
+    ReadCliPipes
+    ReadApplicationState
+    MessageAndLaunchOtherPlugins
+    ChangeApplicationState
+    RunCommands
+}

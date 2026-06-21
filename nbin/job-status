@@ -1,0 +1,69 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd -P)"
+source "$SCRIPT_DIR/lib/job-common.sh"
+
+job_id=""
+json_output=0
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --json)
+            json_output=1
+            shift
+            ;;
+        *)
+            if [[ -z "$job_id" ]]; then
+                job_id="$1"
+                shift
+            else
+                job_usage_error "unexpected argument: $1"
+            fi
+            ;;
+    esac
+done
+
+if [[ -z "$job_id" ]]; then
+    job_id="$(job_get_latest)" || job_usage_error "no recent job for this worktree"
+fi
+
+job_load_metadata "$job_id"
+status_output="$(job_remote_invoke "$host" status "$job_id")"
+
+declare -A fields=()
+while IFS='=' read -r key value; do
+    [[ -n "$key" ]] || continue
+    fields["$key"]="$value"
+done <<<"$status_output"
+
+if [[ "$json_output" -eq 1 ]]; then
+    printf '{'
+    printf '"job_id":"%s",' "$(job_json_escape "${fields[job_id]:-$job_id}")"
+    printf '"state":"%s",' "$(job_json_escape "${fields[state]:-unknown}")"
+    printf '"host":"%s",' "$(job_json_escape "$host")"
+    printf '"kind":"%s"' "$(job_json_escape "$kind")"
+    if [[ -n "${fields[exit_code]:-}" ]]; then
+        printf ',"exit_code":%s' "${fields[exit_code]}"
+    fi
+    if [[ -n "${fields[started_at]:-}" ]]; then
+        printf ',"started_at":"%s"' "$(job_json_escape "${fields[started_at]}")"
+    fi
+    if [[ -n "${fields[finished_at]:-}" ]]; then
+        printf ',"finished_at":"%s"' "$(job_json_escape "${fields[finished_at]}")"
+    fi
+    printf '}\n'
+else
+    printf 'job_id=%s\nstate=%s\nhost=%s\nkind=%s\n' \
+        "${fields[job_id]:-$job_id}" "${fields[state]:-unknown}" "$host" "$kind"
+    if [[ -n "${fields[exit_code]:-}" ]]; then
+        printf 'exit_code=%s\n' "${fields[exit_code]}"
+    fi
+    if [[ -n "${fields[started_at]:-}" ]]; then
+        printf 'started_at=%s\n' "${fields[started_at]}"
+    fi
+    if [[ -n "${fields[finished_at]:-}" ]]; then
+        printf 'finished_at=%s\n' "${fields[finished_at]}"
+    fi
+fi

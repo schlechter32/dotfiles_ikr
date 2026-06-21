@@ -139,12 +139,15 @@ install_neovim() {
   install_symlink "${dest_dir}/bin/nvim" "${APP_BIN}/nvim"
 }
 
+# Pinned to v0.43.1 -- v0.44.x has a client/server protocol regression that
+# causes "unknown message from client" infinite loops with our plugin layout.
+# Bump only after verifying the layout still renders.
+ZELLIJ_VERSION="v0.43.1"
+
 install_zellij() {
-  local version url dest_dir
-  version="$(github_latest_tag "zellij-org/zellij")"
-  [[ -n "$version" ]]
+  local url dest_dir
   dest_dir="${APP_ROOT}/zellij"
-  url="https://github.com/zellij-org/zellij/releases/download/${version}/zellij-x86_64-unknown-linux-musl.tar.gz"
+  url="https://github.com/zellij-org/zellij/releases/download/${ZELLIJ_VERSION}/zellij-x86_64-unknown-linux-musl.tar.gz"
 
   download_extract_tarball "$url" "$dest_dir"
   install_symlink "${dest_dir}/zellij" "${APP_BIN}/zellij"
@@ -157,6 +160,13 @@ install_tpm() {
   else
     git clone https://github.com/tmux-plugins/tpm "$tpm_dir"
   fi
+}
+
+install_zellij_status() {
+  local plugin_dir="${HOME}/.config/zellij/plugins"
+  ensure_dir "$plugin_dir"
+  curl_fetch -o "${plugin_dir}/zellij-status.wasm" \
+    "https://github.com/scottames/zellij-status/releases/latest/download/zellij-status.wasm"
 }
 
 install_uv() {
@@ -178,6 +188,7 @@ install_shelltools() {
   install_cargo_binstall eza
   install_cargo_binstall ripgrep
   install_cargo_binstall starship
+  install_cargo_binstall television
   install_cargo_binstall yazi-fm
   install_cargo_binstall zoxide
 
@@ -208,5 +219,6 @@ else
 fi
 
 install_tpm
+install_zellij_status
 
 "${REPODIR}/linkconf.sh"

@@ -1,0 +1,54 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd -P)"
+
+usage() {
+    cat <<'EOF'
+Usage:
+  job run <test|lint|train|eval> [--host HOST] [-- extra args]
+  job status [JOB_ID] [--json]
+  job tail [JOB_ID] [--lines N]
+  job cancel [JOB_ID]
+  job hosts [HOST ...] [--json]
+
+Examples:
+  job run test
+  job run test --host cobra3 -- -q tests/test_router.py
+  job hosts --json
+EOF
+}
+
+subcommand="${1:-}"
+[[ -n "$subcommand" ]] || {
+    usage
+    exit 1
+}
+shift
+
+case "$subcommand" in
+    run)
+        exec "$SCRIPT_DIR/job-submit" "$@"
+        ;;
+    status)
+        exec "$SCRIPT_DIR/job-status" "$@"
+        ;;
+    tail)
+        exec "$SCRIPT_DIR/job-tail" "$@"
+        ;;
+    cancel)
+        exec "$SCRIPT_DIR/job-cancel" "$@"
+        ;;
+    hosts)
+        exec "$SCRIPT_DIR/job-hosts" "$@"
+        ;;
+    -h|--help|help)
+        usage
+        ;;
+    *)
+        echo "unknown subcommand: $subcommand" >&2
+        usage >&2
+        exit 1
+        ;;
+esac

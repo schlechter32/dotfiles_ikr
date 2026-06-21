@@ -1,0 +1,32 @@
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING": "1"
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "StopFailure": [
+      {
+        "matcher": "rate_limit|billing_error|authentication_failed|api_error|overloaded",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CC_PASEO_LIMIT_SCHEDULER=none python3 ~/dotfiles_ikr/paseo/claude-limit-resume/cc_paseo_limit_bridge.py hook"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "claude-md-management@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true,
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/nbin/claude-statusline.sh"
+  }
+}

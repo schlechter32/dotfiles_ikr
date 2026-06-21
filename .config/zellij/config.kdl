@@ -80,6 +80,20 @@ keybinds clear-defaults=true {
             }
             SwitchToMode "normal"
         }
+        bind "p" {
+            LaunchOrFocusPlugin "zellij:plugin-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "normal"
+        }
+        bind "c" {
+            LaunchOrFocusPlugin "zellij:configuration" {
+                floating true
+                move_to_focused_tab true
+            }
+            SwitchToMode "normal"
+        }
         bind "Ctrl x" { SwitchToMode "scroll"; }
     }
     shared_except "locked" {
@@ -90,14 +104,36 @@ keybinds clear-defaults=true {
         bind "Alt +" { Resize "Increase"; }
         bind "Alt -" { Resize "Decrease"; }
         bind "Alt =" { Resize "Increase"; }
-        bind "Alt [" { PreviousSwapLayout; }
-        bind "Alt ]" { NextSwapLayout; }
         bind "Ctrl g" { SwitchToMode "locked"; }
         bind "Alt h" { MoveFocusOrTab "left"; }
         bind "Alt j" { MoveFocus "down"; }
         bind "Alt k" { MoveFocus "up"; }
         bind "Alt l" { MoveFocusOrTab "right"; }
+
         bind "Alt n" { NewPane; }
+
+        // Plugin manager (grant permissions / enable /disable / reload plugins)
+        bind "Alt Shift p" {
+            LaunchOrFocusPlugin "zellij:plugin-manager" {
+                floating true
+                move_to_focused_tab true
+            }
+        }
+
+        // Tab navigation (wired from wezterm leader shortcuts)
+        // Alt p intentionally unbound so it passes through to tmux (floax)
+        bind "Alt [" { GoToPreviousTab; }
+        bind "Alt ]" { GoToNextTab; }
+        bind "Alt c" { NewTab; }
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
     }
     shared_except "locked" "session" {
         bind "Ctrl x" { SwitchToMode "session"; }
@@ -107,9 +143,6 @@ keybinds clear-defaults=true {
     }
     shared_except "locked" "scroll" {
         bind "Ctrl s" { SwitchToMode "scroll"; }
-    }
-    shared_except "locked" "scroll" "search" "tmux" {
-        bind "Ctrl b" { SwitchToMode "tmux"; }
     }
     shared_except "locked" "tab" {
         bind "Ctrl t" { SwitchToMode "tab"; }
@@ -199,7 +232,7 @@ plugins {
     strider location="zellij:strider"
     tab-bar location="zellij:tab-bar"
     welcome-screen location="zellij:session-manager" {
-        welcome_screen true
+        welcome_screen false
     }
 }
 
@@ -214,7 +247,7 @@ load_plugins {
 //   - true
 //   - false (Default)
 // 
-simplified_ui true
+simplified_ui false
  
 // Choose the theme that is specified in the themes section.
 // Default: default
@@ -265,7 +298,6 @@ default_shell "zsh"
 //   - false
 // 
 pane_frames false
- 
 // When attaching to an existing session with other users,
 // should the session be mirrored (true)
 // or should each user have their own cursor (false)

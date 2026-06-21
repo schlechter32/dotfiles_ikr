@@ -1,0 +1,36 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+// run shells with pseudo ty
+    "opencode-pty",
+// make tasks not hang
+//    "opencode-shell-strategy",
+// automatically compact
+    "opencode-dynamic-context-pruning",
+
+    //"opencode-worktree",
+    //"opencode-notificator",
+ //   "opencode-background-agents",
+    "opencode-supermemory",
+//"@spoons-and-mirrors/subtask2@latest",
+//"opencode-anthropic-oauth",
+"opencode-antigravity-auth"
+  ],
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "rm -rf *": "ask",
+      "sudo *": "deny"
+    },
+    "edit": "allow"
+  },
+  "compaction": {
+    "enabled": true
+  },
+  "watcher": {
+    "ignore": ["node_modules/**", "dist/**", ".git/**", "__pycache__/**", "*.pyc"]
+  },
+  "instructions": [
+    //"CLAUDE.md"
+  ]
+}

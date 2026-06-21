@@ -1,4 +1,5 @@
 export EDITOR=nvim
+export COLORTERM=truecolor
 GPG_TTY=$(tty)
 export GPG_TTY
 # PATHS
@@ -63,6 +64,7 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 source "$HOME/dotfiles/zsh/aliases.zsh"
 source "$HOME/dotfiles/zsh/functions.zsh"
 source "$HOME/dotfiles/zsh/ikrhosts.zsh"
+# source "$HOME/dotfiles/zsh/zellij.zsh"  # wezterm-only setup, no local zellij
 
 if [[ $(uname) == "Darwin" ]]; then
     alias nsh="nsh-darwin-arm64" 
@@ -71,7 +73,6 @@ else
 fi
 
 # Shell integrations
-eval "$(zoxide init zsh --cmd cd)"
 eval "$(starship init zsh)"
 eval "$(tv init zsh)"
 
@@ -107,4 +108,10 @@ eval "$(uv generate-shell-completion zsh)"
 
 # opencode
 export PATH=/home/nclshrnk/.opencode/bin:$PATH
-eval "$(tv init zsh)"
+if command -v wt >/dev/null 2>&1; then eval "$(command wt config shell init zsh)"; fi
+export PATH="$NPM_CONFIG_PREFIX/bin:$PATH"
+
+# Silence zoxide's "configuration issue" doctor warning. It runs on every `cd`
+# and spams non-interactive/agent shells where the chpwd hook gets dropped.
+export _ZO_DOCTOR=0
+eval "$(zoxide init zsh --cmd cd)"

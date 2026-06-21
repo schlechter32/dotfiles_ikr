@@ -1,0 +1,34 @@
+#!/run/current-system/sw/bin/bash
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "$(readlink -f -- "$0")")" && pwd -P)"
+source "$SCRIPT_DIR/lib/job-common.sh"
+
+job_id=""
+lines=40
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --lines)
+            [[ $# -ge 2 ]] || job_usage_error "--lines requires a value"
+            lines="$2"
+            shift 2
+            ;;
+        *)
+            if [[ -z "$job_id" ]]; then
+                job_id="$1"
+                shift
+            else
+                job_usage_error "unexpected argument: $1"
+            fi
+            ;;
+    esac
+done
+
+if [[ -z "$job_id" ]]; then
+    job_id="$(job_get_latest)" || job_usage_error "no recent job for this worktree"
+fi
+
+job_load_metadata "$job_id"
+job_remote_invoke "$host" tail "$job_id" "$lines"

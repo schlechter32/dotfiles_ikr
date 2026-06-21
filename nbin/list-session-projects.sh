@@ -14,5 +14,5 @@ roots=(
 for root in "${roots[@]}"; do
   [[ -d "$root" ]] || continue
 
-  fd -H -I -u -E .venv -t f -t d '^\.git$' "$root" -x dirname
+  fd -H -I -u -E .venv -E 'archive*' -E '*_backup' -E '*.bak' -t f -t d '^\.git$' "$root" -x dirname
 done | awk 'NF && !seen[$0]++'

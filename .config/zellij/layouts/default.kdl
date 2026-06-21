@@ -1,0 +1,102 @@
+layout {
+    default_tab_template {
+        // size=15 temporarily so the plugin permission modal can render.
+        // Once you've granted (the modal disappears + bar renders), change
+        // back to size=1.
+        pane size=1 borderless=true {
+            plugin location="file:~/.config/zellij/plugins/zellij-status.wasm" {
+                layout_mode "horizontal"
+
+                // -- Catppuccin Mocha palette --
+                color_rosewater "#f5e0dc"
+                color_flamingo  "#f2cdcd"
+                color_pink      "#f5c2e7"
+                color_mauve     "#cba6f7"
+                color_red       "#f38ba8"
+                color_maroon    "#eba0ac"
+                color_peach     "#fab387"
+                color_yellow    "#f9e2af"
+                color_green     "#a6e3a1"
+                color_teal      "#94e2d5"
+                color_sky       "#89dceb"
+                color_sapphire  "#74c7ec"
+                color_blue      "#89b4fa"
+                color_lavender  "#b4befe"
+                color_text      "#cdd6f4"
+                color_subtext1  "#bac2de"
+                color_subtext0  "#a6adc8"
+                color_overlay2  "#9399b2"
+                color_overlay1  "#7f849c"
+                color_overlay0  "#6c7086"
+                color_surface2  "#585b70"
+                color_surface1  "#45475a"
+                color_surface0  "#313244"
+                color_base      "#1e1e2e"
+                color_mantle    "#181825"
+                color_crust     "#11111b"
+
+                // --- Sections ---
+                // Left: mode (with cap) | tabs
+                format_1_left "{mode}#[fg=$surface1]|{tabs}"
+                cap_bg        "$mantle"
+
+                // Right: battery | ISO week | session | datetime
+                // Force bg=$mantle so the right zone matches the spacer.
+                format_1_right "#[bg=$mantle,fg=$subtext0] {command_battery} #[bg=$mantle,fg=$overlay0]|{command_week} #[bg=$mantle,fg=$overlay0]|#[bg=$mantle,fg=$subtext0] {session} #[bg=$mantle,fg=$subtext0] {datetime} "
+
+                // Spacer fill colour between zones.
+                format_space "#[bg=$mantle]"
+
+                // Hide right zone first if terminal is too narrow.
+                format_precedence         "12"
+                format_hide_on_overlength "true"
+
+                // --- Tabs (numbered, "1:name") ---
+                tab_active        "#[fg=$base,bg=$green,bold,fill] {index}:{name} #[bg=$mantle]"
+                tab_normal        "#[fg=$overlay0] {index}:{name} "
+                tab_separator     "#[fg=$surface1]|"
+                tab_max_name_length 18
+                tab_start_index     1
+
+                // --- Mode widget (with inline keybind hints per mode) ---
+                // The {mode} widget renders mode_<name>. We append a hint
+                // segment after the mode badge so the active-mode hints
+                // appear right next to it. NORMAL stays short.
+                mode_normal       "#[bg=$blue,fg=$base,bold] NORMAL #[bg=$mantle,fg=$overlay0] Ctrl+ q:pane t:tab w:resize s:scroll x:session g:lock "
+                mode_locked       "#[bg=$red,fg=$base,bold] LOCKED #[bg=$mantle,fg=$overlay0] Ctrl+g unlock "
+                mode_pane         "#[bg=$peach,fg=$base,bold] PANE #[bg=$mantle,fg=$overlay0] n:new d:↓ p:next x:close z:full f:frames e:embed r:rename w:float esc "
+                mode_tab          "#[bg=$green,fg=$base,bold] TAB #[bg=$mantle,fg=$overlay0] n:new x:close r:rename hjkl:move 1-9:goto a:toggle b:break [/]:break-side s:sync esc "
+                mode_resize       "#[bg=$teal,fg=$base,bold] RESIZE #[bg=$mantle,fg=$overlay0] hjkl:grow HJKL:shrink +:in -:out esc "
+                mode_scroll       "#[bg=$peach,fg=$base,bold] SCROLL #[bg=$mantle,fg=$overlay0] jk:line ud:half-pg fb:page G:bot e:edit s:search esc "
+                mode_search       "#[bg=$yellow,fg=$base,bold] SEARCH #[bg=$mantle,fg=$overlay0] n:next p:prev c:case o:word w:wrap esc "
+                mode_enter_search "#[bg=$yellow,fg=$base,bold] ENTER-SEARCH #[bg=$mantle,fg=$overlay0] type query, enter to confirm "
+                mode_session      "#[bg=$mauve,fg=$base,bold] SESSION #[bg=$mantle,fg=$overlay0] w:sessions p:plugins c:config d:detach esc "
+                mode_rename_tab   "#[bg=$green,fg=$base,bold] RENAME-TAB #[bg=$mantle,fg=$overlay0] type new name, enter to confirm, esc to cancel "
+                mode_rename_pane  "#[bg=$peach,fg=$base,bold] RENAME-PANE #[bg=$mantle,fg=$overlay0] type new name, enter to confirm, esc to cancel "
+                mode_tmux         "#[bg=$flamingo,fg=$base,bold] TMUX #[bg=$mantle,fg=$overlay0] \":vsplit %:hsplit c:new-tab n/p:tab o:focus ,:rename [:scroll esc "
+                mode_move         "#[bg=$teal,fg=$base,bold] MOVE #[bg=$mantle,fg=$overlay0] hjkl:move pane esc "
+                mode_prompt       "#[bg=$red,fg=$peach,bold] PROMPT "
+
+                // --- Battery percent (uses nbin/battery-pct on PATH) ---
+                command_battery_command  "battery-pct"
+                command_battery_format   "#[bg=$mantle,fg=$green] {stdout}%"
+                command_battery_interval "30"
+
+                // --- ISO calendar week (e.g. W17) ---
+                command_week_command  "date +%V"
+                command_week_format   "#[bg=$mantle,fg=$blue,bold] W{stdout}"
+                command_week_interval "60"
+
+                // --- DateTime ---
+                datetime          "#[bg=$mantle,fg=$green,bold] {format} "
+                datetime_format   "%a %d.%m %H:%M"
+                datetime_timezone "Europe/Berlin"
+
+                // Notifications off for now.
+                notification_enabled       "false"
+                notification_show_if_empty "false"
+            }
+        }
+        children
+    }
+}

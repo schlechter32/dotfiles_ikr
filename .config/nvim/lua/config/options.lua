@@ -30,7 +30,3 @@ vim.g.maplocalleader = " "
 vim.opt.undofile = true
 vim.opt.smartindent = true
 vim.cmd([[set completeopt+=menuone,noselect,popup]])
-
--- GitHub Copilot: disable telemetry
-vim.g.copilot_disable_telemetry = 1
-vim.env.COPILOT_TELEMETRY_OPTOUT = "1"

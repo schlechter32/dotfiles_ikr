@@ -1,5 +1,9 @@
 BULK_HOME="/u/bulk/home/wima/$USER"
-LAB_BULK_HOME="/bulk/netserv0/wimas/$USER"
+if [[ "$USER" == "agent" ]]; then
+  LAB_BULK_HOME="/bulk/netserv0/wimas/nclshrnk"
+else
+  LAB_BULK_HOME="/bulk/netserv0/wimas/$USER"
+fi
 
 export CPLEX_STUDIO_BINARIES="/ext/cplex/cplex/bin/x86-64_linux"
 # export PATH="$HOME/.juliaup/bin/:$PATH"

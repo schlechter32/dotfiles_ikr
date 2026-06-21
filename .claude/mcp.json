@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "grep_app": {
+      "command": "uvx",
+      "args": ["grep-mcp"]
+    }
+  }
+}

@@ -7,27 +7,14 @@ if not string.find(vim.o.runtimepath, config_root, 1, true) then
 	vim.opt.rtp:prepend(config_root)
 end
 
-
 package.path = table.concat({
 	lua_root .. "/?.lua",
 	lua_root .. "/?/init.lua",
 	package.path,
 }, ";")
 
--- -- Load pack-manager and set it up early
--- require("pack-manager").setup({
--- 	auto_install = true,
--- 	show_progress = true,
--- })
---
--- -- Load modular config
---
 require("config.options")
 require("config.lazy")
 require("config.autocmds")
 require("config.keymaps")
 require("config.codium")
-
--- require("config.plugins")
--- -- require("config.lsp")
---

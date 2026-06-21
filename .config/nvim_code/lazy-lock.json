@@ -1,11 +1,11 @@
 {
-  "conform.nvim": { "branch": "master", "commit": "e969e302bced7ffb9a0a0323629f31feb0ca35a6" },
+  "conform.nvim": { "branch": "master", "commit": "619363c30309d29ffa631e67c8183f2a72caa373" },
   "flash.nvim": { "branch": "main", "commit": "fcea7ff883235d9024dc41e638f164a450c14ca2" },
   "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" },
-  "mini.ai": { "branch": "main", "commit": "4b0a6207341d895b6cfe9bcb1e4d3e8607bfe4f4" },
-  "mini.comment": { "branch": "main", "commit": "597d32ed2c9fbfbf9a250bec7c6b9035f71214f5" },
-  "mini.surround": { "branch": "main", "commit": "d205d1741d1fcc1f3117b4e839bf00f74ad72fa2" },
-  "nvim-treesitter": { "branch": "main", "commit": "544320a9cf5d6bf539ec1cc54d393064015670c4" },
-  "nvim-treesitter-textobjects": { "branch": "main", "commit": "a0e182ae21fda68c59d1f36c9ed45600aef50311" },
-  "yanky.nvim": { "branch": "main", "commit": "9d3caea67cf183639d4e510d34f2d58b6109abdd" }
+  "mini.ai": { "branch": "main", "commit": "4511b3481707c1d021485475d34f2ed2a50bf47b" },
+  "mini.comment": { "branch": "main", "commit": "fc87ba6554f182161d9a4bab5017c575571f000f" },
+  "mini.surround": { "branch": "main", "commit": "9fd5ebef2b34cc4ac3c0f1811a6726ea6d92fa91" },
+  "nvim-treesitter": { "branch": "main", "commit": "4916d6592ede8c07973490d9322f187e07dfefac" },
+  "nvim-treesitter-textobjects": { "branch": "main", "commit": "851e865342e5a4cb1ae23d31caf6e991e1c99f1e" },
+  "yanky.nvim": { "branch": "main", "commit": "020c22d0cfa60358569e49d1d7b91630f175aef0" }
 }

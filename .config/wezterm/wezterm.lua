@@ -45,7 +45,7 @@ config.font = wezterm.font_with_fallback({
 --=============================
 -- Window
 --=============================
-config.window_background_opacity = 0.85
+config.window_background_opacity = 0.95
 config.macos_window_background_blur = 40
 config.window_padding = { left = 8, right = 3, top = 0, bottom = 1 }
 config.window_decorations = "RESIZE"
@@ -53,6 +53,48 @@ config.window_close_confirmation = "AlwaysPrompt"
 config.scrollback_lines = 30000
 config.default_workspace = "home"
 config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.8 }
+
+-- Tab bar re-enabled — wezterm is the only multiplexer now.
+config.enable_tab_bar = true
+
+--=============================
+-- SSH host picker
+--=============================
+local ssh_favorites = {
+	"agent@netserv1",
+}
+
+local function ssh_choices()
+	local choices = {}
+	local seen = {}
+
+	for _, entry in ipairs(ssh_favorites) do
+		seen[entry] = true
+		table.insert(choices, { label = entry, id = entry })
+	end
+
+	local home = os.getenv("HOME") or ""
+	local f = io.open(home .. "/.ssh/config", "r")
+	if f then
+		for line in f:lines() do
+			local hosts = line:match("^Host%s+(.+)$")
+			if hosts then
+				for host in hosts:gmatch("%S+") do
+					if not host:match("[*?]")
+						and host ~= "github.com"
+						and not host:match("%.devpod$")
+						and not seen[host] then
+						seen[host] = true
+						table.insert(choices, { label = host, id = host })
+					end
+				end
+			end
+		end
+		f:close()
+	end
+
+	return choices
+end
 
 --=============================
 -- Keyboard
@@ -88,7 +130,11 @@ config.keys = {
 		key = "e",
 		mods = "LEADER",
 		action = act.PromptInputLine({
-			description = "Enter new tab name",
+			description = wezterm.format({
+				{ Attribute = { Intensity = "Bold" } },
+				{ Foreground = { Color = "#a6e3a1" } },
+				{ Text = " Rename tab: " },
+			}),
 			action = wezterm.action_callback(function(window, _, line)
 				if line then
 					window:active_tab():set_title(line)
@@ -101,7 +147,11 @@ config.keys = {
 		key = "E",
 		mods = "CTRL|SHIFT",
 		action = act.PromptInputLine({
-			description = "Enter new tab name",
+			description = wezterm.format({
+				{ Attribute = { Intensity = "Bold" } },
+				{ Foreground = { Color = "#a6e3a1" } },
+				{ Text = " Rename tab: " },
+			}),
 			action = wezterm.action_callback(function(window, _, line)
 				if line then
 					window:active_tab():set_title(line)
@@ -113,6 +163,69 @@ config.keys = {
 	-- Disable default ALT+Enter behavior
 	{ key = "Enter", mods = "ALT", action = wezterm.action.DisableDefaultAssignment },
 
+	-- Alt+h/l (and Alt+j/k as a synonym) cycle tabs without the leader.
+	{ key = "h", mods = "ALT", action = act.ActivateTabRelative(-1) },
+	{ key = "l", mods = "ALT", action = act.ActivateTabRelative(1) },
+	{ key = "k", mods = "ALT", action = act.ActivateTabRelative(-1) },
+	{ key = "j", mods = "ALT", action = act.ActivateTabRelative(1) },
+
+	-- SUPER+t / CTRL+SHIFT+t use wezterm's default new-tab.
+
+	-- SUPER+s: fuzzy-pick a host from ~/.ssh/config, SSH + tmux attach.
+	{
+		key = "s",
+		mods = "SUPER",
+		action = act.InputSelector({
+			title = " SSH + tmux attach",
+			choices = ssh_choices(),
+			fuzzy = true,
+			fuzzy_description = "Pick host: ",
+			action = wezterm.action_callback(function(window, _pane, id)
+				if not id then return end
+				local user, host = id:match("^([^@]+)@(.+)$")
+				if not host then host = id end
+				local label = user and (user:sub(1, 1) .. "@" .. host) or host
+				local home = os.getenv("HOME")
+				local ish = home .. "/localapps/bin/ish"
+				local path = home .. "/.local/bin:" .. home .. "/localapps/bin:"
+					.. (os.getenv("PATH") or "/usr/local/bin:/usr/bin:/bin")
+				local tab, _, _ = window:mux_window():spawn_tab({
+					args = { ish, "-t", id, "tmux new-session -A" },
+					set_environment_variables = { PATH = path },
+				})
+				if tab then tab:set_title(label) end
+			end),
+		}),
+	},
+
+	-- SUPER+Shift+S: free-text ssh, no tmux. For arbitrary hosts not in the config.
+	{
+		key = "S",
+		mods = "SUPER|SHIFT",
+		action = act.PromptInputLine({
+			description = wezterm.format({
+				{ Attribute = { Intensity = "Bold" } },
+				{ Foreground = { Color = "#a6e3a1" } },
+				{ Text = " SSH: [user@]host " },
+			}),
+			action = wezterm.action_callback(function(window, _pane, line)
+				if not line or line == "" then return end
+				local user, host = line:match("^([^@]+)@(.+)$")
+				if not host then host = line end
+				local label = user and (user:sub(1, 1) .. "@" .. host) or host
+				local home = os.getenv("HOME")
+				local ish = home .. "/localapps/bin/ish"
+				local path = home .. "/.local/bin:" .. home .. "/localapps/bin:"
+					.. (os.getenv("PATH") or "/usr/local/bin:/usr/bin:/bin")
+				local tab, _, _ = window:mux_window():spawn_tab({
+					args = { ish, line },
+					set_environment_variables = { PATH = path },
+				})
+				if tab then tab:set_title(label) end
+			end),
+		}),
+	},
+
 	-- Toggle dark/light
 	{ key = "Q", mods = "CTRL", action = act.EmitEvent("toggle-dark-mode") },
 }
@@ -122,6 +235,12 @@ for i = 1, 9 do
 	table.insert(config.keys, {
 		key = tostring(i),
 		mods = "LEADER",
+		action = act.ActivateTab(i - 1),
+	})
+	-- Alt+[1–9] → activate tab (no leader needed)
+	table.insert(config.keys, {
+		key = tostring(i),
+		mods = "ALT",
 		action = act.ActivateTab(i - 1),
 	})
 end
@@ -155,16 +274,121 @@ config.use_fancy_tab_bar = false
 config.status_update_interval = 1000
 config.colors = {
 	tab_bar = {
-		background = "#1a1b26",
-		active_tab = { bg_color = "#4c4f69", fg_color = "#ed8796" },
-		inactive_tab = { bg_color = "#1b1032", fg_color = "#808080" },
-		inactive_tab_hover = { bg_color = "#3b3052", fg_color = "#909090", italic = true },
-		new_tab = { bg_color = "#1b1032", fg_color = "#808080" },
-		new_tab_hover = { bg_color = "#3b3052", fg_color = "#909090", italic = true },
+		-- Tab bar uses Catppuccin Mocha for consistency with the right-status.
+		background         = "#181825", -- mantle
+		active_tab         = { bg_color = "#a6e3a1", fg_color = "#1e1e2e", intensity = "Bold" },                 -- green on base
+		inactive_tab       = { bg_color = "#181825", fg_color = "#6c7086" },                                      -- overlay0 on mantle
+		inactive_tab_hover = { bg_color = "#313244", fg_color = "#cdd6f4", italic = true },                       -- surface0 + text
+		new_tab            = { bg_color = "#181825", fg_color = "#6c7086" },
+		new_tab_hover      = { bg_color = "#313244", fg_color = "#cdd6f4", italic = true },
 	},
 }
 
+-- Format tabs as "<index>: <title>" (1-based) so tab labels are scannable.
+wezterm.on("format-tab-title", function(tab, _tabs, _panes, _config, _hover, _max_width)
+	local title = tab.tab_title
+	if title == nil or title == "" then
+		title = tab.active_pane.title or ""
+	end
+	return string.format(" %d: %s ", tab.tab_index + 1, title)
+end)
+
+-- Claude session limits. Two caches feed this, both stamped with `ts` (unix s):
+--   ~/.claude/rate-cache.json  — written by the Claude Code statusLine from API
+--       response headers; exact, but only fresh during active Claude sessions.
+--   ~/.claude/usage-poll.json  — written by nbin/claude-usage-poll.py from the
+--       OAuth usage endpoint (~hourly, self-throttled); covers idle periods.
+-- Whichever was written most recently wins.
+local function read_usage_cache(path)
+	local f = io.open(path, "r")
+	if not f then return nil end
+	local raw = f:read("*a")
+	f:close()
+	local ok, d = pcall(wezterm.json_parse, raw)
+	if not ok or type(d) ~= "table" then return nil end
+	-- Usable only if it carries real percentages (a poll cache that has only
+	-- ever seen 429s has none).
+	if d.r5 == nil or d.r7 == nil then return nil end
+	return d
+end
+
+local function claude_usage()
+	local home = os.getenv("HOME") or ""
+	local a = read_usage_cache(home .. "/.claude/rate-cache.json")
+	local b = read_usage_cache(home .. "/.claude/usage-poll.json")
+	local d
+	if a and b then
+		d = (tonumber(b.ts) or 0) > (tonumber(a.ts) or 0) and b or a
+	else
+		d = a or b
+	end
+	if not d then return nil end
+
+	local now = os.time()
+
+	-- Returns (pct, mins_until_reset).
+	-- pct: 0 when window already rolled over; mins: nil when unknown.
+	local function bucket(value, resets_at)
+		local v = tonumber(value) or 0
+		local r = tonumber(resets_at)
+		if r and now >= r then return 0, nil end
+		local mins = r and math.max(0, math.floor((r - now) / 60)) or nil
+		return v, mins
+	end
+
+	local r5, m5 = bucket(d.r5, d.r5_resets_at)
+	local r7, m7 = bucket(d.r7, d.r7_resets_at)
+	return r5, r7, m5, m7
+end
+
+-- Format minutes as "47m", "2h3m", "1d2h" depending on magnitude.
+local function fmt_mins(m)
+	if not m then return nil end
+	if m < 60 then return string.format("%dm", m) end
+	local h = math.floor(m / 60)
+	local rm = m % 60
+	if h < 24 then
+		return rm > 0 and string.format("%dh%dm", h, rm) or string.format("%dh", h)
+	end
+	local days = math.floor(h / 24)
+	local rh = h % 24
+	return rh > 0 and string.format("%dd%dh", days, rh) or string.format("%dd", days)
+end
+
+-- Opportunistically refresh the poll cache while WezTerm is open. The poller
+-- self-throttles (~1 call/hour, honours server retry-after); we additionally
+-- gate here so we never spawn a process more than once a minute, and only when
+-- the poller would actually do something.
+local last_poll_spawn = 0
+local function maybe_spawn_poller()
+	local t = os.time()
+	if t - last_poll_spawn < 60 then return end
+	local home = os.getenv("HOME") or ""
+	local f = io.open(home .. "/.claude/usage-poll.json", "r")
+	if f then
+		local ok, d = pcall(wezterm.json_parse, f:read("*a"))
+		f:close()
+		if ok and type(d) == "table" then
+			local na = tonumber(d.next_allowed_at)
+			if na and t < na then return end -- not due yet
+		end
+	end
+	last_poll_spawn = t
+	-- background_child_process requires {args={...}} but is finicky in older builds;
+	-- io.popen with & is simpler and guaranteed to work.
+	io.popen("python3 " .. home .. "/nbin/claude-usage-poll.py &")
+end
+
+-- Threshold colors (Catppuccin Mocha), matching the statusline script.
+local function usage_color(p)
+	if p >= 80 then return "#f38ba8" end -- red
+	if p >= 50 then return "#f9e2af" end -- yellow
+	return "#a6e3a1" -- green
+end
+
 wezterm.on("update-right-status", function(window)
+	maybe_spawn_poller()
+
 	local leader = window:leader_is_active() and "󰘳  " or ""
 
 	local batt = ""
@@ -173,12 +397,38 @@ wezterm.on("update-right-status", function(window)
 		break
 	end
 
-	local time = wezterm.strftime("%H:%M")
+	local week = wezterm.strftime("W%V  ")
+	local time = wezterm.strftime("%a %d.%m %H:%M")
 
-	window:set_right_status(wezterm.format({
-		{ Foreground = { Color = "#a6d189" } },
-		{ Text = leader .. batt .. time },
-	}))
+	local segments = {}
+	local r5, r7, m5, m7 = claude_usage()
+	if r5 then
+		local t5 = fmt_mins(m5)
+		local t7 = fmt_mins(m7)
+		table.insert(segments, { Foreground = { Color = "#a6d189" } })
+		table.insert(segments, { Text = "󰚩 " })
+		table.insert(segments, { Foreground = { Color = usage_color(r5) } })
+		table.insert(segments, { Text = string.format("5h %d%%", r5) })
+		if t5 then
+			table.insert(segments, { Foreground = { Color = "#585b70" } })
+			table.insert(segments, { Text = " " .. t5 })
+		end
+		table.insert(segments, { Foreground = { Color = "#6c7086" } })
+		table.insert(segments, { Text = " · " })
+		table.insert(segments, { Foreground = { Color = usage_color(r7) } })
+		table.insert(segments, { Text = string.format("7d %d%%", r7) })
+		if t7 then
+			table.insert(segments, { Foreground = { Color = "#585b70" } })
+			table.insert(segments, { Text = " " .. t7 })
+		end
+		table.insert(segments, { Foreground = { Color = "#6c7086" } })
+		table.insert(segments, { Text = "  │  " })
+	end
+
+	table.insert(segments, { Foreground = { Color = "#a6d189" } })
+	table.insert(segments, { Text = leader .. batt .. week .. time .. " " })
+
+	window:set_right_status(wezterm.format(segments))
 end)
 -- wezterm.on("update-right-status", function(window)
 -- 	local text = window:leader_is_active() and "󰘳  " or ""

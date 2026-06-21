@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Print battery capacity percentage as an integer (no %), or empty string
+# when no battery is present. Linux first (preferred), macOS fallback.
+set -u
+
+for f in /sys/class/power_supply/BAT*/capacity; do
+  if [[ -r "$f" ]]; then
+    cat "$f"
+    exit 0
+  fi
+done
+
+if command -v pmset >/dev/null 2>&1; then
+  pmset -g batt 2>/dev/null | awk '/InternalBattery/ {
+    for (i = 1; i <= NF; i++) {
+      if ($i ~ /%/) { gsub(/[%;]/, "", $i); print $i; exit }
+    }
+  }'
+fi
