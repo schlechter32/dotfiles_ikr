@@ -374,9 +374,7 @@ local function maybe_spawn_poller()
 		end
 	end
 	last_poll_spawn = t
-	-- background_child_process requires {args={...}} but is finicky in older builds;
-	-- io.popen with & is simpler and guaranteed to work.
-	io.popen("python3 " .. home .. "/nbin/claude-usage-poll.py &")
+	os.execute("nohup python3 " .. home .. "/nbin/claude-usage-poll.py >/dev/null 2>&1 &")
 end
 
 -- Threshold colors (Catppuccin Mocha), matching the statusline script.

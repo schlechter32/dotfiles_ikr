@@ -19,14 +19,15 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/nbin/claude-statusline.sh"
+  },
   "enabledPlugins": {
     "claude-md-management@claude-plugins-official": true,
     "ralph-loop@claude-plugins-official": true
   },
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true,
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/nbin/claude-statusline.sh"
-  }
+  "tui": "fullscreen"
 }

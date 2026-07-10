@@ -175,8 +175,8 @@ def fetch_usage(token):
     except urllib.error.HTTPError as e:
         retry_after = e.headers.get("retry-after") if e.headers else None
         return e.code, None, {"retry_after": retry_after}
-    except Exception:
-        return None, None, {}
+    except Exception as e:
+        return None, None, {"exception": str(e)}
 
 
 def parse_usage(data):
@@ -251,8 +251,9 @@ def main():
         return
 
     # network / unexpected: keep last good data, retry sooner
+    detail = meta.get("exception") or (f"http_{status}" if status else "no_response")
     cache.update(
-        ok=False, error="network", fetched_at=now(),
+        ok=False, error="network", error_detail=detail, fetched_at=now(),
         next_allowed_at=now() + TRANSIENT_INTERVAL,
     )
     write_cache(cache)
